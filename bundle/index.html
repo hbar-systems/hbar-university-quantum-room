@@ -154,6 +154,19 @@
   .symrow .def{color:#cdd3e6}
   .syms{padding-bottom:14px}
 
+  /* math layer — surfaces live equations across the visuals. Off by default. */
+  .math{display:none}
+  body.math .math{display:block}
+  .mathstrip{margin-top:9px;padding:9px 12px;background:#0c0f20;
+    border:1px solid #1f2640;border-radius:9px;font-size:11.5px;color:#cdd3e6;
+    line-height:1.85;text-align:left}
+  .mathstrip sup{font-size:9px}
+  .mathstrip .lbl{color:var(--mut);margin-right:6px}
+
+  /* inline visual inside a concept-ladder layer */
+  .layer .vis{padding:9px 0 4px;display:flex;justify-content:center}
+  .layer .vis svg{max-width:100%;height:auto;opacity:0.94}
+
   footer{margin-top:24px;text-align:center}
   .cta{background:#10142a;border:1px solid #232a47;border-radius:12px;
     padding:13px 16px;display:flex;gap:12px;align-items:center;justify-content:center;
@@ -180,6 +193,7 @@
   <button class="tab" data-r="measure"><span class="n">4</span>Measurement</button>
   <button class="tab" data-r="map">Map</button>
   <span class="navsep"></span>
+  <button class="mini" id="math"><span class="dot"></span>math</button>
   <button class="mini on" id="motion"><span class="dot"></span>motion</button>
   <button class="mini on" id="sound"><span class="dot"></span>sound</button>
 </nav>
@@ -191,17 +205,18 @@
   <div class="roomsub">Drag to turn it. Press a gate — every gate is a rotation.</div>
   <canvas id="c-qubit" class="grab" style="height:400px"></canvas>
   <div class="ctl">
-    <button class="gate" data-g="X">X</button>
-    <button class="gate" data-g="Y">Y</button>
-    <button class="gate" data-g="Z">Z</button>
-    <button class="gate" data-g="H">H</button>
-    <button class="gate" data-g="S">S</button>
-    <button class="gate" data-g="T">T</button>
+    <button class="gate" data-g="X" title="Pauli-X = [[0, 1], [1, 0]]   — π rotation about x">X</button>
+    <button class="gate" data-g="Y" title="Pauli-Y = [[0, -i], [i, 0]]  — π rotation about y">Y</button>
+    <button class="gate" data-g="Z" title="Pauli-Z = [[1, 0], [0, -1]]  — π rotation about z (phase flip)">Z</button>
+    <button class="gate" data-g="H" title="Hadamard H = (1/√2)·[[1, 1], [1, -1]]  — π rotation about (x+z)/√2">H</button>
+    <button class="gate" data-g="S" title="S = [[1, 0], [0, i]]  — π/2 rotation about z">S</button>
+    <button class="gate" data-g="T" title="T = [[1, 0], [0, e^{iπ/4}]]  — π/4 rotation about z">T</button>
     <span class="sep"></span>
     <button class="act" id="q-reset">reset |0&rang;</button>
   </div>
   <div class="state mono" id="q-state"></div>
   <div class="read mono" id="q-read"></div>
+  <div class="math mathstrip mono" id="q-math"></div>
 </section>
 
 <!-- ROOM 2 -->
@@ -215,6 +230,7 @@
     <button class="act" id="i-zero">phase = 0</button>
   </div>
   <div class="read mono" id="i-read"></div>
+  <div class="math mathstrip mono" id="i-math"></div>
 </section>
 
 <!-- ROOM 3 -->
@@ -228,6 +244,7 @@
     <button class="act" id="e-reset">reset</button>
   </div>
   <div class="read mono" id="e-read"></div>
+  <div class="math mathstrip mono" id="e-math"></div>
 </section>
 
 <!-- ROOM 4 -->
@@ -262,6 +279,7 @@
     </div>
   </div>
   <div class="read mono" id="m-read">no measurements yet.</div>
+  <div class="math mathstrip mono" id="m-math"></div>
 </section>
 
 <!-- ROOM MAP -->
@@ -563,6 +581,9 @@ function renderQubit(dt){
   document.getElementById('q-read').innerHTML=
     `θ ${piStr(th)} · φ ${piStr(ph)} &nbsp;&nbsp; `+
     `P(0) <b>${fmt(a*a,2)}</b> · P(1) <b>${fmt(b*b,2)}</b>`;
+  document.getElementById('q-math').innerHTML=
+    `<span class="lbl">Bloch vector</span>r = (⟨σ<sub>x</sub>⟩, ⟨σ<sub>y</sub>⟩, ⟨σ<sub>z</sub>⟩) = (${fmt(qV.x,3)}, ${fmt(qV.y,3)}, ${fmt(qV.z,3)})<br>`+
+    `<span class="lbl">amplitudes</span>α = ⟨0|ψ⟩ = cos(θ/2) = ${fmt(a,3)},   β = ⟨1|ψ⟩ = e<sup>i·${piStr(ph)}</sup>·sin(θ/2) = ${fmt(b,3)}·e<sup>i·${piStr(ph)}</sup>`;
 }
 
 /* ===================================================================== */
@@ -631,6 +652,10 @@ function renderInterf(dt){
     `bright <span class="cy">${fmt(bright,3)}</span> · `+
     `dark <span class="am">${fmt(dark,3)}</span> · `+
     `total <b>${fmt(bright+dark,3)}</b> — conserved`;
+  document.getElementById('i-math').innerHTML=
+    `<span class="lbl">arrows</span>A<sub>1</sub> = ½·e<sup>i·0</sup>,   A<sub>2</sub> = ½·e<sup>i·${piStr(phase)}</sup><br>`+
+    `<span class="lbl">bright</span>|A<sub>1</sub>+A<sub>2</sub>|² = cos²(φ/2) = ${fmt(bright,3)}<br>`+
+    `<span class="lbl">dark</span>|A<sub>1</sub>−A<sub>2</sub>|² = sin²(φ/2) = ${fmt(dark,3)}`;
 }
 
 /* ===================================================================== */
@@ -677,6 +702,10 @@ function renderEntang(dt){
     msg=`A measured <b class="vi">${eMeasured}</b> → B is now <b class="vi">${eMeasured}</b>. You never touched B.`;
   }
   document.getElementById('e-read').innerHTML=msg;
+  document.getElementById('e-math').innerHTML=
+    `<span class="lbl">state</span>|ψ⟩ = cos(α)·|00⟩ + sin(α)·|11⟩,   α = ${piStr(al)}<br>`+
+    `<span class="lbl">reduced</span>ρ<sub>A</sub> = ½(I + cos(2α)·σ<sub>z</sub>),   |r<sub>A</sub>| = cos(2α) = ${fmt(r,3)}<br>`+
+    `<span class="lbl">concurrence</span>E = sin(2α) = ${fmt(E,3)}`;
 }
 
 /* ===================================================================== */
@@ -726,6 +755,10 @@ function renderMeasure(dt){
   if(!tot) rd.innerHTML=`no measurements yet — predicted P(0) = <b>${fmt(p0,2)}</b>.`;
   else rd.innerHTML=`tally ${tot}: got 0 <span class="cy">${fmt(mC0/tot,3)}</span> `+
     `vs predicted <b>${fmt(p0,3)}</b> — gap ${fmt(Math.abs(mC0/tot-p0),3)}`;
+  document.getElementById('m-math').innerHTML=
+    `<span class="lbl">P(0)</span>|⟨0|ψ⟩|² = cos²(θ/2) = ${fmt(p0,3)}<br>`+
+    `<span class="lbl">P(1)</span>|⟨1|ψ⟩|² = sin²(θ/2) = ${fmt(p1,3)}`+
+    (tot?`<br><span class="lbl">tally</span>${mC0}/${tot} = ${fmt(mC0/tot,3)} → predicted ${fmt(p0,3)}, gap ${fmt(Math.abs(mC0/tot-p0),3)}`:'');
 }
 
 /* ===================================================================== */
@@ -877,6 +910,7 @@ function toggle(id,set){
   const el=document.getElementById(id);
   el.onclick=()=>{el.classList.toggle('on');set(el.classList.contains('on'));};
 }
+toggle('math',on=>document.body.classList.toggle('math',on));
 toggle('motion',on=>motionOn=on);
 toggle('sound',on=>soundOn=on);
 
@@ -978,7 +1012,8 @@ const CONCEPTS={
      'Topological quantum computing tries to store information in such phases, because geometry resists noise.'],
     ['Phase can even appear with no force acting at all.',
      'In the Aharonov–Bohm effect a charged particle circles a magnetic field it is fully shielded from, and still picks up a measurable phase.',
-     'Phase is not bookkeeping for forces — it is physically real in its own right, and that was not obvious until 1959.']
+     'Phase is not bookkeeping for forces — it is physically real in its own right, and that was not obvious until 1959.',
+     {svg:'<svg viewBox="0 0 220 130" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ab1" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b79bf0"/></marker></defs><rect x="95" y="38" width="30" height="55" fill="#1c2233" stroke="#7d8ec8" stroke-width="1.5"/><line x1="103" y1="46" x2="103" y2="80" stroke="#b79bf0" stroke-width="1" marker-end="url(#ab1)"/><line x1="110" y1="46" x2="110" y2="80" stroke="#b79bf0" stroke-width="1" marker-end="url(#ab1)"/><line x1="117" y1="46" x2="117" y2="80" stroke="#b79bf0" stroke-width="1" marker-end="url(#ab1)"/><text x="110" y="105" font-size="9" fill="#9aa2bd" text-anchor="middle" font-family="monospace">B (shielded)</text><ellipse cx="110" cy="65" rx="78" ry="42" stroke="#7fe4ff" stroke-width="1.5" fill="none" stroke-dasharray="3,3"/><circle cx="32" cy="65" r="4.5" fill="#ffcd6a"/><text x="32" y="52" font-size="10" fill="#ffcd6a" text-anchor="middle" font-family="monospace">e⁻</text><text x="110" y="125" font-size="9" fill="#9aa2bd" text-anchor="middle" font-family="monospace">path never enters the field — phase still changes</text></svg>'}]
   ]},
   poles:{title:'The poles |0⟩ and |1⟩',layers:[
     ['The very top and very bottom of the ball are the two ordinary answers: 0 and 1.',
@@ -1181,7 +1216,8 @@ const CONCEPTS={
     ['Bright bands are where the two paths arrive in step.',
      'Dark bands are where they arrive out of step and cancel.'],
     ['The strange part: the pattern still builds when you send the particles one at a time, with long gaps between them.'],
-    ['Each particle crosses both slits as a superposition, interferes with itself, and only then lands as a single dot.'],
+    ['Each particle crosses both slits as a superposition, interferes with itself, and only then lands as a single dot.',
+     {svg:'<svg viewBox="0 0 280 112" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="56" r="4" fill="#7fe4ff"/><text x="14" y="24" font-size="9" fill="#9aa2bd" text-anchor="middle" font-family="monospace">source</text><line x1="130" y1="16" x2="130" y2="44" stroke="#7d8ec8" stroke-width="2.5"/><line x1="130" y1="52" x2="130" y2="60" stroke="#7d8ec8" stroke-width="2.5"/><line x1="130" y1="68" x2="130" y2="96" stroke="#7d8ec8" stroke-width="2.5"/><text x="130" y="108" font-size="9" fill="#9aa2bd" text-anchor="middle" font-family="monospace">two slits</text><line x1="18" y1="56" x2="130" y2="48" stroke="#5fe0d8" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"/><line x1="18" y1="56" x2="130" y2="64" stroke="#5fe0d8" stroke-width="1" stroke-dasharray="2,2" opacity="0.7"/><line x1="130" y1="48" x2="266" y2="22" stroke="#5fe0d8" stroke-width="1" stroke-dasharray="2,2" opacity="0.45"/><line x1="130" y1="48" x2="266" y2="56" stroke="#5fe0d8" stroke-width="1" stroke-dasharray="2,2" opacity="0.45"/><line x1="130" y1="48" x2="266" y2="88" stroke="#5fe0d8" stroke-width="1" stroke-dasharray="2,2" opacity="0.45"/><line x1="130" y1="64" x2="266" y2="22" stroke="#5fe0d8" stroke-width="1" stroke-dasharray="2,2" opacity="0.45"/><line x1="130" y1="64" x2="266" y2="56" stroke="#5fe0d8" stroke-width="1" stroke-dasharray="2,2" opacity="0.45"/><line x1="130" y1="64" x2="266" y2="88" stroke="#5fe0d8" stroke-width="1" stroke-dasharray="2,2" opacity="0.45"/><line x1="266" y1="14" x2="266" y2="96" stroke="#7d8ec8" stroke-width="2"/><rect x="269" y="18" width="7" height="9" fill="#ffcd6a"/><rect x="269" y="33" width="7" height="5" fill="#ffcd6a" opacity="0.25"/><rect x="269" y="42" width="7" height="13" fill="#ffcd6a"/><rect x="269" y="61" width="7" height="5" fill="#ffcd6a" opacity="0.25"/><rect x="269" y="70" width="7" height="9" fill="#ffcd6a"/><text x="272" y="108" font-size="9" fill="#9aa2bd" text-anchor="middle" font-family="monospace">fringes</text></svg>'}],
     ['Close one slit and the stripes vanish — with only one path, there is nothing to interfere with.'],
     ['Put a detector at the slits to catch which one each particle took, and the stripes vanish too.',
      'Knowing the path destroys the interference.'],
@@ -1207,7 +1243,8 @@ const CONCEPTS={
     ['In 1964 John Bell found a way to test that guess.'],
     ['He showed that any such pre-agreed plan must obey a numerical limit — a ceiling on how correlated the results can be.'],
     ['Quantum mechanics predicts correlations that climb above that ceiling.'],
-    ['So the two pictures do not merely disagree in spirit — they disagree on a number you can measure.'],
+    ['So the two pictures do not merely disagree in spirit — they disagree on a number you can measure.',
+     {svg:'<svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg"><line x1="24" y1="110" x2="240" y2="110" stroke="#7d8ec8" stroke-width="1"/><line x1="24" y1="18" x2="24" y2="115" stroke="#7d8ec8" stroke-width="1"/><text x="132" y="125" font-size="9" fill="#9aa2bd" text-anchor="middle" font-family="monospace">measurement angle →</text><text x="14" y="22" font-size="9" fill="#9aa2bd" text-anchor="end" font-family="monospace">|corr|</text><line x1="24" y1="65" x2="240" y2="65" stroke="#ffcd6a" stroke-width="1.5" stroke-dasharray="4,3"/><text x="236" y="60" font-size="9" fill="#ffcd6a" text-anchor="end" font-family="monospace">classical maximum</text><path d="M 70 65 Q 100 35 132 30 Q 164 35 194 65 Z" fill="#7fe4ff" opacity="0.18"/><path d="M 24 100 Q 80 30 132 28 Q 184 30 240 100" stroke="#7fe4ff" stroke-width="2" fill="none"/><text x="132" y="22" font-size="9" fill="#7fe4ff" text-anchor="middle" font-family="monospace">quantum — climbs above the ceiling</text></svg>'}],
     ['Every careful experiment, loophole-free since 2015, finds the quantum number.',
      'The pre-agreed-plan picture is ruled out.'],
     ['The conclusion is forced: the world is not "locally real".',
@@ -1369,7 +1406,9 @@ function renderDrawer(){
   for(let i=0;i<depth;i++){
     h+=`<div class="layer${i===depth-1?' fade':''}">`+
        `<span class="depthtag">${tagFor(i)}</span>`+
-       c.layers[i].map(s=>`<span class="line">${s}</span>`).join('')+`</div>`;
+       c.layers[i].map(s=>typeof s==='string'
+         ?`<span class="line">${s}</span>`
+         :(s&&s.svg?`<div class="vis">${s.svg}</div>`:'')).join('')+`</div>`;
   }
   if(depth<tot)
     h+=`<div class="deepwrap"><button class="deeper" id="deeper">read further ↓</button>`+

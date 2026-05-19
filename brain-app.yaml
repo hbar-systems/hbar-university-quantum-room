@@ -19,7 +19,7 @@
 dialect: brain-app/v1
 id: quantum-room
 name: The Quantum Room
-version: 0.2.0
+version: 0.3.0
 description: An interactive instrument for understanding quantum mechanics — five rooms, a concept map, and layered read-further explanations from plain language to real physics.
 license: AGPL-3.0
 
