@@ -32,15 +32,23 @@ Web Audio sonifies gates and outcomes.
 
 The "Ask the brain" panel sends what you are looking at — room, concept, depth,
 state, and the concepts you have explored — to the host brain as context. The
-app is thin; the brain is the reasoner and the memory. Standalone it shows that
-context; installed in a brain (from v0.2.0, once the postMessage bridge is
-wired) it is answered over the brain's curriculum, and your progress persists.
+app is thin; the brain is the reasoner and the memory.
+
+**From v0.2.0** the postMessage bridge is wired:
+
+- Standalone (open the file in a browser) — the app runs fully; the side-chat
+  shows the context it *would* send and the rest is quiet.
+- Installed in a brain — questions go through the `llm.complete` bridge intent
+  and are answered over the brain's curriculum (semantic layer, BYOK model);
+  each concept you open at a new depth appends an event to episodic memory so
+  the brain remembers what you have explored. The map also remembers locally
+  via `localStorage`, so the lit concepts survive across browser sessions.
 
 ## Install
 
-Paste this repo's GitHub URL into a brain's Apps page and Approve. v0.1.0
-declares no permissions in `brain-app.yaml` — it touches no memory and invokes
-no model; every room runs inside the iframe.
+Paste this repo's GitHub URL into a brain's Apps page and Approve. v0.2.0
+declares `llm.invoke` + `memory.write` permissions, with `semantic` read and
+`episodic` append layers — the operator approves the scope on install.
 
 ## License
 

@@ -330,9 +330,51 @@ function piStr(x){
   return r.toFixed(2)+'π';
 }
 
-/* The brain this app talks to. Empty = running standalone (no brain).
-   Set to the host brain's chat endpoint when the app is installed. */
-const BRAIN_ENDPOINT='';
+/* ---- brain-app bridge ----------------------------------------------- *
+   postMessage to the host brain shell (brain-app/v1 contract).
+   Standalone (not iframed) -> bridge calls short-circuit and the app still
+   runs fully; only the side-chat + persistence are quiet. */
+function inBrain(){ return window.parent && window.parent!==window; }
+function bridge(type,payload){
+  return new Promise((resolve,reject)=>{
+    const id='qr-'+Math.random().toString(36).slice(2);
+    let done=false;
+    const handler=e=>{
+      if(!e.data || e.data.request_id!==id) return;
+      done=true; window.removeEventListener('message',handler);
+      if(e.data.ok) resolve(e.data.result);
+      else reject(e.data.error||{code:'unknown'});
+    };
+    window.addEventListener('message',handler);
+    window.parent.postMessage({type,payload,request_id:id},'*');
+    setTimeout(()=>{
+      if(done) return;
+      window.removeEventListener('message',handler);
+      reject({code:'timeout'});
+    },30000);
+  });
+}
+/* persist each concept-read as an episodic event, best-effort */
+function persistProgress(key,depth){
+  if(!inBrain()) return;
+  const c=CONCEPTS[key];
+  bridge('memory.write',{
+    layer:'episodic',
+    content:`Read "${c.title}" to level ${depth} of ${c.layers.length} in the Quantum Room.`,
+    source:'quantum-room',
+    metadata:{app:'quantum-room',concept:key,depth,total:c.layers.length}
+  }).catch(()=>{});
+}
+/* the map also remembers locally - survives across browser sessions */
+function saveProgress(){
+  try{ localStorage.setItem('qr-progress',JSON.stringify(progress)); }catch(e){}
+}
+function loadProgress(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('qr-progress')||'{}');
+    for(const k in saved) progress[k]=saved[k];
+  }catch(e){}
+}
 
 /* ---- sound ---------------------------------------------------------- */
 let soundOn=true, actx=null;
@@ -1312,7 +1354,12 @@ function renderDrawer(){
     return;
   }
   const c=CONCEPTS[focus];
-  progress[focus]=Math.max(progress[focus]||0,depth);
+  const prevDepth=progress[focus]||0;
+  if(depth>prevDepth){
+    progress[focus]=depth;
+    saveProgress();
+    persistProgress(focus,depth);
+  }
   const TAGS=['start here','in plain words','a little more precisely',
     'the working picture','now the structure','the mathematics',
     'stated formally','the technical phrasing','at the edge'];
@@ -1390,17 +1437,19 @@ function ask(){
   inp.value='';
   const ctx=buildContext();
   askMsg('you',q);
-  if(!BRAIN_ENDPOINT){
-    askMsg('note','Standalone — no brain attached. Installed in a brain, this question goes to the brain for an answer with the context below loaded; the brain answers and remembers what you asked.');
+  if(!inBrain()){
+    askMsg('note','Standalone — no brain attached. Installed in a brain, this question goes through the brain-app bridge to the brain reasoner with the context below loaded; the brain answers over its curriculum and remembers what you asked.');
     askMsg('ctx',ctx);
     return;
   }
   askMsg('note','asking the brain…');
-  fetch(BRAIN_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message:q,context:ctx,app:'quantum-room'})})
-    .then(r=>r.json())
-    .then(d=>askMsg('brain',d.reply||'(the brain returned no reply)'))
-    .catch(e=>askMsg('note','could not reach the brain — '+e.message));
+  const messages=[
+    {role:'system',content:`You are answering inside the Quantum Room — an interactive quantum-mechanics instrument. The user is reading their way through it. Use the curriculum the brain holds; answer concisely, at the depth they are reading at. Current context:\n\n${ctx}`},
+    {role:'user',content:q}
+  ];
+  bridge('llm.complete',{messages})
+    .then(r=>askMsg('brain',r.text||'(the brain returned no reply)'))
+    .catch(e=>askMsg('note','bridge error: '+(e.code||e.message||'unknown')));
 }
 document.getElementById('asksend').onclick=ask;
 document.getElementById('askin').addEventListener('keydown',e=>{
@@ -1409,6 +1458,7 @@ document.getElementById('askin').addEventListener('keydown',e=>{
 
 /* ---- go ------------------------------------------------------------- */
 window.addEventListener('load',()=>{
+  loadProgress();
   for(const k in ROOMS) fit(document.getElementById(ROOMS[k].cv));
   buildChips('qubit');renderDrawer();
   document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS.qubit;
