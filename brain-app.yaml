@@ -1,0 +1,38 @@
+# The Quantum Room — brain-app manifest
+#
+# An interactive instrument for understanding quantum mechanics. Installs into
+# a brain via the Apps page (paste this repo's public GitHub URL -> Approve).
+#
+# Schema: brain-app/v1 — api/schemas/brain-app.schema.json in brainfoundry-nous.
+# Created: 2026-05-19
+#
+# v0.1.0 declares no permissions: every room, concept, and the map run fully
+# inside the iframe with no brain access. The "Ask the brain" panel renders
+# its standalone state until the postMessage-bridge wiring lands in v0.2.0 —
+# at which point this manifest gains llm.invoke + a semantic read layer so
+# answers are generated over the brain's curriculum.
+
+dialect: brain-app/v1
+id: quantum-room
+name: The Quantum Room
+version: 0.1.0
+description: An interactive instrument for understanding quantum mechanics — five rooms, a concept map, and layered read-further explanations from plain language to real physics.
+license: AGPL-3.0
+
+author:
+  name: hbar
+  url: https://hbar.systems
+  contact: hello@hbar.systems
+
+repo: https://github.com/hbar-systems/hbar-university-quantum-room
+
+tab:
+  label: Quantum
+  route: /quantum
+  order: 100
+
+entries:
+  ui_bundle: bundle/
+
+engines:
+  brainfoundry-nous: ">=0.8.0"

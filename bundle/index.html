@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Quantum Room</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='25' x='5' font-size='25' fill='%23e8ebf2' font-family='Georgia,serif'>%E2%84%8F</text></svg>">
+<style>
+  :root{
+    --ink:#e8ebf2; --mut:#9aa2bd; --faint:#5a6280;
+    --cy:#7fe4ff; --am:#ffcd6a; --vi:#b79bf0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(ellipse at 50% 28%,#1a1f3a 0%,#0c0e1c 60%,#070810 100%);
+    color:var(--ink);min-height:100%;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.55}
+  .mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  .wrap{max-width:660px;margin:0 auto;padding:20px 18px 60px}
+
+  header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  header h1{font-family:Georgia,serif;font-weight:500;font-size:21px}
+  header h1 .h{color:var(--am)}
+  header .sub{color:var(--faint);font-size:12.5px}
+
+  /* nav */
+  nav{display:flex;gap:6px;margin:14px 0 6px;flex-wrap:wrap;align-items:center}
+  .tab{background:#141833;color:var(--mut);border:1px solid #272e4d;
+    padding:8px 12px;border-radius:9px;cursor:pointer;font-size:13px;
+    font-family:inherit;transition:.13s}
+  .tab:hover{color:var(--ink);border-color:#3a4366}
+  .tab.on{background:#222a4d;color:var(--ink);border-color:#3c5c78}
+  .tab .n{color:var(--faint);margin-right:6px}
+  .tab.on .n{color:var(--cy)}
+  .navsep{flex:1}
+  .mini{background:#141833;color:var(--mut);border:1px solid #272e4d;
+    padding:7px 11px;border-radius:9px;cursor:pointer;font-size:12px;
+    font-family:inherit;transition:.12s;display:flex;gap:6px;align-items:center}
+  .mini:hover{color:var(--ink);border-color:#3a4366}
+  .mini.on{color:var(--cy);border-color:#2f4a63}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+  .mini.on .dot{background:var(--cy);box-shadow:0 0 7px var(--cy)}
+
+  .roomsub{color:var(--faint);font-size:12.5px;margin:4px 0 10px}
+  .room{display:none}
+  .room.on{display:block}
+
+  canvas{display:block;width:100%;border-radius:16px;border:1px solid #232a47;
+    touch-action:none;background:radial-gradient(ellipse at 50% 38%,#12152a 0%,#0a0b16 80%)}
+  .grab{cursor:grab} .grab:active{cursor:grabbing}
+
+  .ctl{display:flex;gap:6px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .gate{background:#181d35;color:var(--ink);border:1px solid #2e3658;
+    width:40px;height:38px;border-radius:9px;cursor:pointer;font-size:15px;
+    font-family:Georgia,serif;transition:.12s}
+  .gate:hover{border-color:var(--am);color:var(--am);background:#1e2442}
+  .gate:active{transform:translateY(1px)}
+  .sep{flex:1}
+  .act{background:#141833;color:var(--mut);border:1px solid #272e4d;
+    padding:8px 13px;border-radius:9px;cursor:pointer;font-size:12.5px;
+    font-family:inherit;transition:.12s}
+  .act:hover{color:var(--ink);border-color:#3a4366}
+  .act.go{color:var(--cy);border-color:#2f4a63;background:#172132}
+  .act.go:hover{background:#1d2a40}
+
+  .fld{font-size:12px;color:var(--mut);margin:14px 0 7px;display:block}
+  .fld .v{color:var(--ink)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;
+    border-radius:3px;background:#2a2f3a;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;
+    border-radius:50%;background:var(--am);cursor:pointer;border:2px solid #0a0b0e}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;
+    background:var(--am);cursor:pointer;border:2px solid #0a0b0e}
+
+  .state{margin-top:15px;font-size:16px;letter-spacing:.3px;text-align:center}
+  .state .cy{color:var(--cy)} .state .am{color:var(--am)}
+  .state sup{font-size:11px}
+  .read{text-align:center;color:var(--mut);font-size:12.5px;margin-top:6px}
+  .read b{color:var(--ink);font-weight:500}
+  .read .cy{color:var(--cy)} .read .am{color:var(--am)} .read .vi{color:var(--vi)}
+
+  .bars{display:flex;gap:14px;margin-top:14px}
+  .bar{flex:1}
+  .bar .cap{font-size:12px;color:var(--mut);display:flex;justify-content:space-between}
+  .bar .track{height:11px;background:#1c2029;border-radius:6px;margin-top:5px;overflow:hidden}
+  .bar .fill{height:100%;width:0;border-radius:6px;transition:width .25s}
+  .f0{background:var(--cy)} .f1{background:var(--am)}
+
+  /* concept chips + drawer */
+  .chips{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-top:22px}
+  .chip{background:#141833;color:var(--mut);border:1px solid #2a3252;
+    padding:7px 13px;border-radius:20px;cursor:pointer;font-size:13px;transition:.13s}
+  .chip:hover{color:var(--ink);border-color:#3d4670}
+  .chip.on{background:#222a4d;color:var(--cy);border-color:#3c5c78}
+  .drawer{margin-top:14px;background:#10142a;border:1px solid #232a47;
+    border-radius:14px;padding:4px 20px 18px;min-height:74px}
+  .drawer .hint{color:var(--faint);font-size:13.5px;padding:18px 0;text-align:center}
+  .drawer h3{font-family:Georgia,serif;font-weight:500;font-size:17px;
+    color:var(--ink);margin:16px 0 4px}
+  .layer{padding:10px 0;border-top:1px solid #1f2640}
+  .layer:first-of-type{border-top:none}
+  .layer .line{display:block;font-size:14px;color:#cdd3e6}
+  .layer .line+.line{margin-top:3px}
+  .layer .depthtag{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;
+    color:var(--faint);display:block;margin-bottom:5px}
+  .deepwrap{display:flex;align-items:center;gap:12px;margin-top:13px}
+  .deeper{background:#1c2647;color:var(--cy);border:1px solid #38507a;
+    padding:9px 16px;border-radius:9px;cursor:pointer;font-size:13px;
+    font-family:inherit;transition:.13s}
+  .deeper:hover{background:#243057;border-color:#4d6a98}
+  .lvl{font-size:11px;color:var(--faint);letter-spacing:.5px}
+  .floor{margin-top:13px;color:var(--faint);font-size:12px;text-align:center}
+  .fade{animation:fade .4s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  /* ask-the-brain panel */
+  .ask{margin-top:14px;background:#10142a;border:1px solid #232a47;
+    border-radius:14px;padding:14px 18px}
+  .askhead{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+  .askhead .t{font-family:Georgia,serif;font-size:15px;color:var(--ink);white-space:nowrap}
+  .askctx{font-size:10px;color:var(--faint);text-align:right;line-height:1.45}
+  .asklog{margin:10px 0;display:flex;flex-direction:column;gap:7px}
+  .asklog:empty{display:none}
+  .msg{font-size:13px;border-radius:9px;padding:7px 11px;max-width:88%}
+  .msg.you{align-self:flex-end;background:#222a4d;color:var(--ink)}
+  .msg.brain{align-self:flex-start;background:#172132;color:#cdd3e6;border:1px solid #2a3a4d}
+  .msg.note{align-self:center;color:var(--faint);font-size:11.5px;text-align:center;max-width:100%}
+  .msg.ctx{align-self:stretch;color:var(--mut);font-size:11px;
+    font-family:"SF Mono",ui-monospace,monospace;background:#0c0f20;
+    border:1px solid #1f2640;border-radius:8px;line-height:1.55}
+  .askrow{display:flex;gap:7px}
+  .askrow input{flex:1;background:#0c0f20;border:1px solid #2a3252;border-radius:9px;
+    padding:9px 12px;color:var(--ink);font-family:inherit;font-size:13px;outline:none}
+  .askrow input:focus{border-color:#3c5c78}
+  .askrow button{background:#1c2647;color:var(--cy);border:1px solid #38507a;
+    border-radius:9px;padding:0 16px;cursor:pointer;font-family:inherit;font-size:13px}
+  .askrow button:hover{background:#243057}
+
+  .try{margin:2px 0 12px;font-size:12.5px;color:var(--cy);
+    background:#101a2c;border:1px solid #23344e;border-radius:9px;padding:8px 13px}
+  .try b{color:var(--mut);font-weight:500}
+
+  .symbols{margin-top:14px;background:#10142a;border:1px solid #232a47;
+    border-radius:12px;padding:0 18px;font-size:13px}
+  .symbols summary{cursor:pointer;padding:13px 0;color:var(--mut);
+    font-family:Georgia,serif;font-size:14px;list-style:none}
+  .symbols summary::-webkit-details-marker{display:none}
+  .symbols summary:hover{color:var(--ink)}
+  .symbols[open] summary{color:var(--ink)}
+  .symrow{display:flex;gap:14px;padding:8px 0;border-top:1px solid #1f2640}
+  .symrow .sym{flex:0 0 82px;color:var(--am);
+    font-family:"SF Mono",ui-monospace,monospace;font-size:12.5px}
+  .symrow .def{color:#cdd3e6}
+  .syms{padding-bottom:14px}
+
+  footer{margin-top:24px;text-align:center}
+  .cta{background:#10142a;border:1px solid #232a47;border-radius:12px;
+    padding:13px 16px;display:flex;gap:12px;align-items:center;justify-content:center;
+    flex-wrap:wrap;font-size:13px;color:var(--mut)}
+  .cta a{color:var(--cy);text-decoration:none;border:1px solid #38507a;
+    background:#1c2647;border-radius:8px;padding:7px 13px;transition:.13s;white-space:nowrap}
+  .cta a:hover{background:#243057}
+  .credit{margin-top:10px;color:var(--faint);font-size:11.5px}
+  .credit a{color:var(--mut);text-decoration:none}
+  .credit a:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1><span class="h">&#8463;</span> The Quantum Room</h1>
+  <span class="sub">an instrument for understanding quantum mechanics</span>
+</header>
+
+<nav>
+  <button class="tab on" data-r="qubit"><span class="n">1</span>The Qubit</button>
+  <button class="tab" data-r="interf"><span class="n">2</span>Interference</button>
+  <button class="tab" data-r="entang"><span class="n">3</span>Entanglement</button>
+  <button class="tab" data-r="measure"><span class="n">4</span>Measurement</button>
+  <button class="tab" data-r="map">Map</button>
+  <span class="navsep"></span>
+  <button class="mini on" id="motion"><span class="dot"></span>motion</button>
+  <button class="mini on" id="sound"><span class="dot"></span>sound</button>
+</nav>
+
+<div class="try" id="try"></div>
+
+<!-- ROOM 1 -->
+<section class="room on" id="room-qubit">
+  <div class="roomsub">Drag to turn it. Press a gate — every gate is a rotation.</div>
+  <canvas id="c-qubit" class="grab" style="height:400px"></canvas>
+  <div class="ctl">
+    <button class="gate" data-g="X">X</button>
+    <button class="gate" data-g="Y">Y</button>
+    <button class="gate" data-g="Z">Z</button>
+    <button class="gate" data-g="H">H</button>
+    <button class="gate" data-g="S">S</button>
+    <button class="gate" data-g="T">T</button>
+    <span class="sep"></span>
+    <button class="act" id="q-reset">reset |0&rang;</button>
+  </div>
+  <div class="state mono" id="q-state"></div>
+  <div class="read mono" id="q-read"></div>
+</section>
+
+<!-- ROOM 2 -->
+<section class="room" id="room-interf">
+  <div class="roomsub">Two paths, two arrows. Slide the phase and watch them build, then cancel.</div>
+  <canvas id="c-interf" style="height:340px"></canvas>
+  <label class="fld">phase of path 2 &mdash; <span class="v mono" id="i-lab"></span></label>
+  <input type="range" id="i-phase" min="0" max="628" value="0">
+  <div class="ctl">
+    <button class="act go" id="i-sweep">auto-sweep</button>
+    <button class="act" id="i-zero">phase = 0</button>
+  </div>
+  <div class="read mono" id="i-read"></div>
+</section>
+
+<!-- ROOM 3 -->
+<section class="room" id="room-entang">
+  <div class="roomsub">Two qubits. Slide them into entanglement — each one's own arrow fades.</div>
+  <canvas id="c-entang" class="grab" style="height:340px"></canvas>
+  <label class="fld">entanglement &mdash; <span class="v mono" id="e-lab"></span></label>
+  <input type="range" id="e-amt" min="0" max="100" value="0">
+  <div class="ctl">
+    <button class="act go" id="e-measure">measure qubit A</button>
+    <button class="act" id="e-reset">reset</button>
+  </div>
+  <div class="read mono" id="e-read"></div>
+</section>
+
+<!-- ROOM 4 -->
+<section class="room" id="room-measure">
+  <div class="roomsub">Tilt the state, then measure. One shot is random; the tally is the law.</div>
+  <canvas id="c-measure" class="grab" style="height:300px"></canvas>
+  <label class="fld">tilt the state &mdash; <span class="v mono" id="m-lab"></span></label>
+  <input type="range" id="m-tilt" min="0" max="100" value="50">
+  <div class="bars">
+    <div class="bar">
+      <div class="cap"><span>P(0)</span><span class="mono cy" id="m-p0"></span></div>
+      <div class="track"><div class="fill f0" id="m-b0"></div></div>
+    </div>
+    <div class="bar">
+      <div class="cap"><span>P(1)</span><span class="mono am" id="m-p1"></span></div>
+      <div class="track"><div class="fill f1" id="m-b1"></div></div>
+    </div>
+  </div>
+  <div class="ctl">
+    <button class="act go" id="m-one">measure once</button>
+    <button class="act go" id="m-many">measure &times;200</button>
+    <button class="act" id="m-clear">clear tally</button>
+  </div>
+  <div class="bars">
+    <div class="bar">
+      <div class="cap"><span>got 0</span><span class="mono cy" id="m-c0">0</span></div>
+      <div class="track" style="height:16px"><div class="fill f0" id="m-h0"></div></div>
+    </div>
+    <div class="bar">
+      <div class="cap"><span>got 1</span><span class="mono am" id="m-c1">0</span></div>
+      <div class="track" style="height:16px"><div class="fill f1" id="m-h1"></div></div>
+    </div>
+  </div>
+  <div class="read mono" id="m-read">no measurements yet.</div>
+</section>
+
+<!-- ROOM MAP -->
+<section class="room" id="room-map">
+  <div class="roomsub">Quantum mechanics as one structure — each dot is a concept, each line a connection. Drag a dot to pull the web; click one to open it.</div>
+  <canvas id="c-map" class="grab" style="height:440px"></canvas>
+</section>
+
+<div class="chips" id="chips"></div>
+<div class="drawer" id="drawer"></div>
+
+<div class="ask">
+  <div class="askhead">
+    <span class="t">Ask the brain</span>
+    <span class="askctx" id="askctx"></span>
+  </div>
+  <div class="asklog" id="asklog"></div>
+  <div class="askrow">
+    <input id="askin" placeholder="ask about what you're seeing..." autocomplete="off">
+    <button id="asksend">ask</button>
+  </div>
+</div>
+
+<details class="symbols">
+  <summary>Symbol key — what the notation means</summary>
+  <div class="syms">
+    <div class="symrow"><span class="sym">θ</span><span class="def">theta — the tilt of the state down from the top of the sphere</span></div>
+    <div class="symrow"><span class="sym">φ</span><span class="def">phi — the phase: how far the state is turned around the vertical</span></div>
+    <div class="symrow"><span class="sym">|0⟩  |1⟩</span><span class="def">the two basis states — the poles, the two values of a classical bit</span></div>
+    <div class="symrow"><span class="sym">|ψ⟩</span><span class="def">psi — the complete state of the qubit</span></div>
+    <div class="symrow"><span class="sym">cos · sin</span><span class="def">the amplitudes cos(θ/2) and sin(θ/2) — how far the state leans to each pole</span></div>
+    <div class="symrow"><span class="sym">e^{iφ}</span><span class="def">the phase factor — it carries φ, and is invisible to a lone measurement</span></div>
+    <div class="symrow"><span class="sym">P(0) P(1)</span><span class="def">the chance of measuring 0 or 1 — the amplitudes squared</span></div>
+    <div class="symrow"><span class="sym">π</span><span class="def">half a turn — every angle here is shown in terms of it</span></div>
+    <div class="symrow"><span class="sym">ℏ</span><span class="def">h-bar — the quantum of action; the constant this instrument is named for</span></div>
+  </div>
+</details>
+
+<footer>
+  <div class="cta">
+    <span>The Quantum Room learns with you when it lives in a brain.</span>
+    <a href="https://brainfoundry.ai/get-a-brain" target="_blank" rel="noopener">get a brain &rarr;</a>
+  </div>
+  <div class="credit">An <a href="https://hbar.systems" target="_blank" rel="noopener">hbar.systems</a> instrument &middot; brain-app spike</div>
+</footer>
+</div>
+
+<script>
+"use strict";
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const smooth=t=>t*t*(3-2*t);
+const fmt=(x,n=3)=>x.toFixed(n);
+function gcd(a,b){return b?gcd(b,a%b):a;}
+function piStr(x){
+  if(Math.abs(x)<0.012) return '0';
+  const r=x/Math.PI;
+  for(const d of [1,2,3,4,6,8,12]){
+    const n=Math.round(r*d);
+    if(n!==0 && Math.abs(r-n/d)<0.012){
+      const gg=gcd(Math.abs(n),d), nn=n/gg, dd=d/gg, an=Math.abs(nn);
+      const num=an===1?'':an;
+      return (nn<0?'−':'')+(dd===1?`${num}π`:`${num}π/${dd}`);
+    }
+  }
+  return r.toFixed(2)+'π';
+}
+
+/* The brain this app talks to. Empty = running standalone (no brain).
+   Set to the host brain's chat endpoint when the app is installed. */
+const BRAIN_ENDPOINT='';
+
+/* ---- sound ---------------------------------------------------------- */
+let soundOn=true, actx=null;
+function tone(f,dur=0.32,vol=0.13){
+  if(!soundOn) return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type='sine';o.frequency.value=f;o.connect(g);g.connect(actx.destination);
+    const t=actx.currentTime;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(vol,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.start(t);o.stop(t+dur+0.05);
+  }catch(e){}
+}
+
+/* ---- 3D ------------------------------------------------------------- */
+const cam={az:-0.6,el:0.42};
+function project(p){
+  const ca=Math.cos(cam.az),sa=Math.sin(cam.az);
+  let x=p.x*ca-p.y*sa, y=p.x*sa+p.y*ca;
+  const ce=Math.cos(cam.el),se=Math.sin(cam.el);
+  let y2=y*ce-p.z*se, z2=y*se+p.z*ce;
+  return {x:x,y:z2,depth:y2};
+}
+function rotate(v,k,a){
+  const c=Math.cos(a),s=Math.sin(a);
+  const d=v.x*k.x+v.y*k.y+v.z*k.z;
+  const cx=k.y*v.z-k.z*v.y, cy=k.z*v.x-k.x*v.z, cz=k.x*v.y-k.y*v.x;
+  return {x:v.x*c+cx*s+k.x*d*(1-c),
+          y:v.y*c+cy*s+k.y*d*(1-c),
+          z:v.z*c+cz*s+k.z*d*(1-c)};
+}
+const ZAX={x:0,y:0,z:1};
+
+/* ---- the Bloch sphere — shared by rooms 1, 3, 4 --------------------- */
+function blochSphere(g,cx,cy,R,opt){
+  opt=opt||{};
+  const focus=opt.focus;
+  const S=p=>{const q=project(p);return {x:cx+q.x*R,y:cy-q.y*R,d:q.depth};};
+  // glass orb
+  const gr=g.createRadialGradient(cx-R*0.32,cy-R*0.36,R*0.08,cx,cy,R*1.02);
+  gr.addColorStop(0,'rgba(150,172,235,0.20)');
+  gr.addColorStop(0.65,'rgba(74,92,160,0.07)');
+  gr.addColorStop(1,'rgba(40,50,100,0.0)');
+  g.fillStyle=gr;g.beginPath();g.arc(cx,cy,R,0,TAU);g.fill();
+  g.strokeStyle=focus==='sphere'?'rgba(170,195,255,0.55)':'rgba(140,165,235,0.26)';
+  g.lineWidth=1;g.beginPath();g.arc(cx,cy,R,0,TAU);g.stroke();
+  const seg=(a,b,col,w)=>{
+    const A=S(a),B=S(b),dep=(A.d+B.d)/2;
+    g.globalAlpha=clamp(0.72-0.52*dep,0.1,1);
+    g.strokeStyle=col;g.lineWidth=w;
+    g.beginPath();g.moveTo(A.x,A.y);g.lineTo(B.x,B.y);g.stroke();
+    g.globalAlpha=1;
+  };
+  const N=40, wf=focus==='sphere';
+  for(let li=0;li<12;li++){
+    const ph=li/12*TAU;
+    for(let i=0;i<N;i++){
+      const t0=i/N*Math.PI,t1=(i+1)/N*Math.PI;
+      seg({x:Math.sin(t0)*Math.cos(ph),y:Math.sin(t0)*Math.sin(ph),z:Math.cos(t0)},
+          {x:Math.sin(t1)*Math.cos(ph),y:Math.sin(t1)*Math.sin(ph),z:Math.cos(t1)},
+          wf?'#7d8ec8':'#525c8a',1);
+    }
+  }
+  for(let la=1;la<6;la++){
+    const th=la/6*Math.PI,eq=(la===3);
+    for(let i=0;i<N;i++){
+      const p0=i/N*TAU,p1=(i+1)/N*TAU;
+      const col=eq?(focus==='phase'?'#8ff4ec':'#5fe0d8'):(wf?'#7d8ec8':'#525c8a');
+      seg({x:Math.sin(th)*Math.cos(p0),y:Math.sin(th)*Math.sin(p0),z:Math.cos(th)},
+          {x:Math.sin(th)*Math.cos(p1),y:Math.sin(th)*Math.sin(p1),z:Math.cos(th)},
+          col,eq?1.6:1);
+    }
+  }
+  seg({x:0,y:0,z:-1.16},{x:0,y:0,z:1.16},'#6b76a8',1.2);
+  // trail
+  if(opt.trail && opt.trail.length>1){
+    for(let i=1;i<opt.trail.length;i++){
+      const A=S(opt.trail[i-1]),B=S(opt.trail[i]);
+      g.globalAlpha=(i/opt.trail.length)*0.5;
+      g.strokeStyle='#ffcd6a';g.lineWidth=2;
+      g.beginPath();g.moveTo(A.x,A.y);g.lineTo(B.x,B.y);g.stroke();
+    }
+    g.globalAlpha=1;
+  }
+  const v=opt.vec;
+  // phase arc
+  if(opt.phaseArc && v){
+    const er=Math.hypot(v.x,v.y);
+    if(er>0.04){
+      const ph=Math.atan2(v.y,v.x), hot=focus==='phase';
+      g.strokeStyle=hot?'#8ff4ec':'rgba(95,224,216,0.5)';
+      g.lineWidth=hot?2.4:1.6;g.beginPath();
+      for(let i=0;i<=30;i++){
+        const a=ph*i/30,p=S({x:Math.cos(a)*er,y:Math.sin(a)*er,z:0});
+        i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y);
+      }
+      g.stroke();
+      const tip=S(v),foot=S({x:v.x,y:v.y,z:0});
+      g.setLineDash([3,4]);g.strokeStyle='rgba(120,135,180,0.6)';g.lineWidth=1;
+      g.beginPath();g.moveTo(tip.x,tip.y);g.lineTo(foot.x,foot.y);g.stroke();
+      g.setLineDash([]);
+    }
+  }
+  // poles
+  const big=focus==='poles';
+  const pole=(z,col,lab)=>{
+    const A=S({x:0,y:0,z:z}), r=big?5.4+Math.sin(clock*4)*1.1:4;
+    g.shadowColor=col;g.shadowBlur=big?16:9;
+    g.fillStyle=col;g.beginPath();g.arc(A.x,A.y,r,0,TAU);g.fill();
+    g.shadowBlur=0;
+    if(opt.poleLabels!==false){
+      g.fillStyle=col;g.font='13px Georgia,serif';
+      g.textAlign='center';g.textBaseline='middle';
+      const L=S({x:0,y:0,z:z*1.32});g.fillText(lab,L.x,L.y);
+    }
+  };
+  pole(1,'#7fe4ff','|0⟩'); pole(-1,'#ffb870','|1⟩');
+  // vector
+  if(v){
+    const len=Math.hypot(v.x,v.y,v.z);
+    const O=S({x:0,y:0,z:0});
+    if(len>0.02){
+      const tip=S(v), behind=project(v).depth>0;
+      const col=opt.col||'#ffcd6a';
+      g.globalAlpha=behind?0.55:1;
+      g.shadowColor=col;g.shadowBlur=focus==='superposition'?22:13;
+      g.strokeStyle=col;g.lineWidth=3.3;g.lineCap='round';
+      g.beginPath();g.moveTo(O.x,O.y);g.lineTo(tip.x,tip.y);g.stroke();
+      const pr=5+Math.sin(clock*3)*1;
+      g.fillStyle='#fff0c8';g.beginPath();g.arc(tip.x,tip.y,pr,0,TAU);g.fill();
+      g.shadowBlur=0;g.lineCap='butt';g.globalAlpha=1;
+    }
+    g.fillStyle='#9aa2bd';g.beginPath();g.arc(O.x,O.y,2.5,0,TAU);g.fill();
+  }
+}
+
+/* ---- canvas plumbing ------------------------------------------------ */
+function fit(cv){
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*dpr;cv.height=h*dpr;
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  cv._g=g;cv._w=w;cv._h=h;
+}
+let clock=0;
+
+/* ===================================================================== */
+/* ROOM 1 — THE QUBIT                                                    */
+/* ===================================================================== */
+let qV={x:0,y:0,z:1}, qTrail=[], qAnim=null;
+const QGATES={
+  X:{k:{x:1,y:0,z:0},a:Math.PI,f:262}, Y:{k:{x:0,y:1,z:0},a:Math.PI,f:294},
+  Z:{k:{x:0,y:0,z:1},a:Math.PI,f:330},
+  H:{k:{x:Math.SQRT1_2,y:0,z:Math.SQRT1_2},a:Math.PI,f:392},
+  S:{k:{x:0,y:0,z:1},a:Math.PI/2,f:440}, T:{k:{x:0,y:0,z:1},a:Math.PI/4,f:523}
+};
+document.querySelectorAll('#room-qubit .gate').forEach(b=>b.onclick=()=>{
+  if(qAnim)return;
+  const G=QGATES[b.dataset.g];
+  qAnim={k:G.k,a:G.a,t:0,start:{...qV}}; qTrail=[]; tone(G.f,0.34,0.12);
+});
+document.getElementById('q-reset').onclick=()=>{
+  if(qAnim)return; qV={x:0,y:0,z:1}; qTrail=[]; tone(196,0.3,0.1);
+};
+function renderQubit(dt){
+  const cv=document.getElementById('c-qubit'),g=cv._g;
+  if(qAnim){
+    qAnim.t=clamp(qAnim.t+dt/0.55,0,1);
+    qV=rotate(qAnim.start,qAnim.k,qAnim.a*smooth(qAnim.t));
+    if(qAnim.t>=1){qV=rotate(qAnim.start,qAnim.k,qAnim.a);qAnim=null;}
+  } else if(motionOn){
+    qV=rotate(qV,ZAX,dt*0.55);
+  }
+  qTrail.push({...qV}); if(qTrail.length>70) qTrail.shift();
+  g.clearRect(0,0,cv._w,cv._h);
+  blochSphere(g,cv._w/2,cv._h/2,Math.min(cv._w,cv._h)*0.40,
+    {vec:qV,trail:qTrail,phaseArc:true,focus:focus});
+  const th=Math.acos(clamp(qV.z,-1,1)), ph=(Math.atan2(qV.y,qV.x)+TAU)%TAU;
+  const a=Math.cos(th/2),b=Math.sin(th/2);
+  document.getElementById('q-state').innerHTML=
+    `|ψ⟩ = <span class="cy">${fmt(a,3)}</span>|0⟩ + `+
+    `<span class="am">${fmt(b,3)}</span> e<sup>i·${piStr(ph)}</sup>|1⟩`;
+  document.getElementById('q-read').innerHTML=
+    `θ ${piStr(th)} · φ ${piStr(ph)} &nbsp;&nbsp; `+
+    `P(0) <b>${fmt(a*a,2)}</b> · P(1) <b>${fmt(b*b,2)}</b>`;
+}
+
+/* ===================================================================== */
+/* ROOM 2 — INTERFERENCE                                                 */
+/* ===================================================================== */
+let iSweep=false, iToneAt=0;
+const iPhase=document.getElementById('i-phase');
+document.getElementById('i-sweep').onclick=e=>{
+  iSweep=!iSweep; e.target.textContent=iSweep?'stop sweep':'auto-sweep';
+};
+document.getElementById('i-zero').onclick=()=>{iPhase.value=0;};
+iPhase.addEventListener('change',()=>{
+  const br=Math.cos(iPhase.value/200)**2;
+  tone(190+br*500,0.26,0.04+br*0.13);
+});
+function renderInterf(dt){
+  const cv=document.getElementById('c-interf'),g=cv._g,W=cv._w,H=cv._h;
+  if(iSweep){
+    let p=(+iPhase.value+dt*55)%628; iPhase.value=p;
+    if(performance.now()-iToneAt>150){
+      const br=Math.cos(p/200)**2;
+      tone(190+br*500,0.1,0.03+br*0.09); iToneAt=performance.now();
+    }
+  }
+  const phase=iPhase.value/100;
+  const A1={x:0.5,y:0}, A2={x:0.5*Math.cos(phase),y:0.5*Math.sin(phase)};
+  const sum={x:A1.x+A2.x,y:A1.y+A2.y}, dif={x:A1.x-A2.x,y:A1.y-A2.y};
+  const bright=sum.x*sum.x+sum.y*sum.y, dark=dif.x*dif.x+dif.y*dif.y;
+  g.clearRect(0,0,W,H);
+  const planeW=W*0.62, ox=planeW*0.5, oy=H*0.52, sc=planeW*0.30;
+  g.strokeStyle='#262b40';g.lineWidth=1;
+  g.beginPath();g.moveTo(12,oy);g.lineTo(planeW-12,oy);
+  g.moveTo(ox,16);g.lineTo(ox,H-16);g.stroke();
+  const P=p=>({x:ox+p.x*sc,y:oy-p.y*sc});
+  const arrow=(A,B,col,w)=>{
+    g.strokeStyle=col;g.lineWidth=w;g.beginPath();
+    g.moveTo(A.x,A.y);g.lineTo(B.x,B.y);g.stroke();
+    const an=Math.atan2(B.y-A.y,B.x-A.x);
+    g.fillStyle=col;g.beginPath();g.moveTo(B.x,B.y);
+    g.lineTo(B.x-9*Math.cos(an-0.42),B.y-9*Math.sin(an-0.42));
+    g.lineTo(B.x-9*Math.cos(an+0.42),B.y-9*Math.sin(an+0.42));
+    g.fill();
+  };
+  const o=P({x:0,y:0}), t1=P(A1), ts=P(sum);
+  arrow(o,t1,'#5a6276',2.6);
+  arrow(t1,P({x:A1.x+A2.x,y:A1.y+A2.y}),'#8a7a55',2.6);
+  g.shadowColor='#7fe4ff';g.shadowBlur=12;
+  arrow(o,ts,'#7fe4ff',3.4); g.shadowBlur=0;
+  g.fillStyle='#737a85';g.font='11px monospace';g.textAlign='center';
+  g.fillText('path 1',(o.x+t1.x)/2,(o.y+t1.y)/2-9);
+  g.fillText('path 2',(t1.x+ts.x)/2,(t1.y+ts.y)/2-9);
+  // detector bars
+  const bx=planeW+20, bw=(W-planeW-40)/2, bh=H-70, by=H-30;
+  const bar=(x,frac,col,lab)=>{
+    g.fillStyle='#1c2233';g.fillRect(x,by-bh,bw,bh);
+    g.fillStyle=col;g.fillRect(x,by-bh*frac,bw,bh*frac);
+    g.fillStyle='#9aa2af';g.font='11px monospace';g.textAlign='center';
+    g.fillText(lab,x+bw/2,by+15);
+    g.fillStyle=col;g.font='12px monospace';
+    g.fillText(fmt(frac,2),x+bw/2,by-bh*frac-7);
+  };
+  bar(bx,bright,'#7fe4ff','bright');
+  bar(bx+bw+8,dark,'#ffcd6a','dark');
+  document.getElementById('i-lab').textContent=`φ = ${piStr(phase)}`;
+  document.getElementById('i-read').innerHTML=
+    `bright <span class="cy">${fmt(bright,3)}</span> · `+
+    `dark <span class="am">${fmt(dark,3)}</span> · `+
+    `total <b>${fmt(bright+dark,3)}</b> — conserved`;
+}
+
+/* ===================================================================== */
+/* ROOM 3 — ENTANGLEMENT                                                 */
+/* ===================================================================== */
+let eMeasured=null;
+const eAmt=document.getElementById('e-amt');
+eAmt.addEventListener('input',()=>{eMeasured=null;});
+document.getElementById('e-reset').onclick=()=>{eMeasured=null;eAmt.value=0;};
+document.getElementById('e-measure').onclick=()=>{
+  const al=eAmt.value/100*Math.PI/4;
+  eMeasured=(Math.random()<Math.cos(al)**2)?0:1;
+  tone(eMeasured?523:330,0.4,0.16);
+};
+function renderEntang(dt){
+  const cv=document.getElementById('c-entang'),g=cv._g,W=cv._w,H=cv._h;
+  const al=eAmt.value/100*Math.PI/4;
+  const r=Math.cos(2*al), E=Math.sin(2*al);
+  g.clearRect(0,0,W,H);
+  const R=Math.min(W*0.21,H*0.32), yC=H*0.46, xA=W*0.28, xB=W*0.72;
+  if(E>0.01){
+    const grd=g.createLinearGradient(xA,yC,xB,yC);
+    grd.addColorStop(0,'rgba(183,155,240,0)');
+    grd.addColorStop(0.5,`rgba(183,155,240,${E*0.9})`);
+    grd.addColorStop(1,'rgba(183,155,240,0)');
+    g.strokeStyle=grd;g.lineWidth=1+E*5;
+    g.beginPath();g.moveTo(xA+R,yC);g.lineTo(xB-R,yC);g.stroke();
+    g.fillStyle=`rgba(183,155,240,${E})`;g.font='11px monospace';
+    g.textAlign='center';g.fillText('shared link',W/2,yC-12);
+  }
+  const vA=eMeasured===null?{x:0,y:0,z:r}:{x:0,y:0,z:eMeasured?-1:1};
+  const vB=vA;
+  blochSphere(g,xA,yC,R,{vec:vA,col:'#b79bf0',poleLabels:false});
+  blochSphere(g,xB,yC,R,{vec:vB,col:'#b79bf0',poleLabels:false});
+  g.fillStyle='#737a85';g.font='12px monospace';g.textAlign='center';
+  g.fillText('qubit A',xA,yC+R+30);
+  g.fillText('qubit B',xB,yC+R+30);
+  document.getElementById('e-lab').textContent=`${(E*100)|0}% — link strength`;
+  let msg;
+  if(eMeasured===null){
+    msg=`each qubit's own arrow: length <b>${fmt(r,3)}</b> `+
+      (r<0.05?'— no state of its own':r>0.95?'— fully its own':'— fading into the link');
+  } else {
+    msg=`A measured <b class="vi">${eMeasured}</b> → B is now <b class="vi">${eMeasured}</b>. You never touched B.`;
+  }
+  document.getElementById('e-read').innerHTML=msg;
+}
+
+/* ===================================================================== */
+/* ROOM 4 — MEASUREMENT                                                  */
+/* ===================================================================== */
+let mC0=0,mC1=0,mSnap=null;
+const mTilt=document.getElementById('m-tilt');
+function mProbs(){
+  const th=mTilt.value/100*Math.PI;
+  return {th,p0:Math.cos(th/2)**2,p1:Math.sin(th/2)**2};
+}
+function mMeasure(loud){
+  const {p0}=mProbs(), r=Math.random()<p0?0:1;
+  r?mC1++:mC0++; mSnap={to:r,t:0};
+  if(loud) tone(r?523:294,0.3,0.15);
+}
+mTilt.addEventListener('input',()=>{mSnap=null;});
+document.getElementById('m-one').onclick=()=>mMeasure(true);
+document.getElementById('m-many').onclick=()=>{
+  for(let i=0;i<200;i++) mMeasure(false);
+  mSnap=null; tone(392,0.4,0.12);
+};
+document.getElementById('m-clear').onclick=()=>{mC0=0;mC1=0;mSnap=null;};
+function renderMeasure(dt){
+  const cv=document.getElementById('c-measure'),g=cv._g,W=cv._w,H=cv._h;
+  const {th,p0,p1}=mProbs();
+  let vec={x:Math.sin(th),y:0,z:Math.cos(th)};
+  if(mSnap){
+    mSnap.t=clamp(mSnap.t+dt/0.4,0,1);
+    const e=smooth(mSnap.t), tg=mSnap.to?{x:0,y:0,z:-1}:{x:0,y:0,z:1};
+    vec={x:vec.x*(1-e),y:0,z:vec.z*(1-e)+tg.z*e};
+    if(mSnap.t>=1) mSnap=null;
+  }
+  g.clearRect(0,0,W,H);
+  blochSphere(g,W/2,H/2,Math.min(W,H)*0.38,{vec:vec,phaseArc:false});
+  document.getElementById('m-lab').textContent=`θ = ${piStr(th)}`;
+  document.getElementById('m-p0').textContent=fmt(p0,3);
+  document.getElementById('m-p1').textContent=fmt(p1,3);
+  document.getElementById('m-b0').style.width=(p0*100)+'%';
+  document.getElementById('m-b1').style.width=(p1*100)+'%';
+  const tot=mC0+mC1;
+  document.getElementById('m-c0').textContent=mC0;
+  document.getElementById('m-c1').textContent=mC1;
+  document.getElementById('m-h0').style.width=(tot?mC0/tot*100:0)+'%';
+  document.getElementById('m-h1').style.width=(tot?mC1/tot*100:0)+'%';
+  const rd=document.getElementById('m-read');
+  if(!tot) rd.innerHTML=`no measurements yet — predicted P(0) = <b>${fmt(p0,2)}</b>.`;
+  else rd.innerHTML=`tally ${tot}: got 0 <span class="cy">${fmt(mC0/tot,3)}</span> `+
+    `vs predicted <b>${fmt(p0,3)}</b> — gap ${fmt(Math.abs(mC0/tot-p0),3)}`;
+}
+
+/* ===================================================================== */
+/* ROOM MAP — the concept graph                                          */
+/* ===================================================================== */
+const MAP_EDGES=[
+  ['sphere','superposition'],['sphere','poles'],['sphere','phase'],['sphere','mixedstate'],
+  ['superposition','amplitude'],['superposition','phase'],['superposition','measurement'],
+  ['superposition','entanglement'],['superposition','cat'],
+  ['phase','interference'],['phase','gates'],
+  ['poles','gates'],['poles','measurement'],['poles','uncertainty'],
+  ['gates','advantage'],['gates','nocloning'],['gates','realqubits'],
+  ['measurement','bornrule'],['measurement','collapse'],['measurement','uncertainty'],['measurement','zeno'],
+  ['nocloning','teleport'],['nocloning','information'],['realqubits','decoherence'],
+  ['amplitude','interference'],['amplitude','bornrule'],
+  ['interference','doubleslit'],['interference','advantage'],['interference','decoherence'],
+  ['advantage','information'],['doubleslit','eraser'],['doubleslit','decoherence'],
+  ['decoherence','cat'],['decoherence','mixedstate'],['decoherence','measproblem'],
+  ['information','bell'],
+  ['entanglement','mixedstate'],['entanglement','nonlocality'],['entanglement','teleport'],
+  ['nonlocality','bell'],['bell','measproblem'],
+  ['bornrule','collapse'],['bornrule','measproblem'],['collapse','measproblem'],
+  ['collapse','observer'],['measproblem','cat'],['measproblem','observer'],['zeno','observer']
+];
+const MAP_LABEL={
+  sphere:'sphere',superposition:'superposition',phase:'phase',poles:'poles',gates:'gates',
+  measurement:'measurement',nocloning:'no-cloning',uncertainty:'uncertainty',realqubits:'real qubits',
+  amplitude:'amplitude',interference:'interference',advantage:'advantage',doubleslit:'double slit',
+  decoherence:'decoherence',eraser:'eraser',information:'information',entanglement:'entanglement',
+  mixedstate:'mixed state',nonlocality:'nonlocality',bell:'Bell',teleport:'teleportation',
+  bornrule:'Born rule',collapse:'collapse',measproblem:'measure problem',observer:'observer',
+  zeno:'Zeno effect',cat:'cat'
+};
+const ROOM_COL={qubit:'#7fe4ff',interf:'#ffcd6a',entang:'#b79bf0',measure:'#7fd9a0'};
+let mapNodes=null, mapDrag=null;
+function initMap(){
+  const conceptRoom={};
+  for(const r in ROOM_CHIPS) for(const pair of ROOM_CHIPS[r]) conceptRoom[pair[0]]=r;
+  const cv=document.getElementById('c-map'), W=cv._w||600, H=cv._h||440;
+  const keys=Object.keys(conceptRoom);
+  mapNodes={};
+  keys.forEach((k,i)=>{
+    const a=i/keys.length*TAU;
+    mapNodes[k]={key:k,room:conceptRoom[k],
+      x:W/2+Math.cos(a)*130+(Math.random()-0.5)*30,
+      y:H/2+Math.sin(a)*110+(Math.random()-0.5)*30,vx:0,vy:0,fx:0,fy:0};
+  });
+}
+function renderMap(dt){
+  const cv=document.getElementById('c-map'),g=cv._g,W=cv._w,H=cv._h;
+  if(!mapNodes) initMap();
+  const N=mapNodes, keys=Object.keys(N);
+  for(const k of keys){N[k].fx=0;N[k].fy=0;}
+  for(let i=0;i<keys.length;i++)for(let j=i+1;j<keys.length;j++){
+    const a=N[keys[i]],b=N[keys[j]];
+    let dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy)||1;
+    const f=6500/(d*d); dx/=d;dy/=d;
+    a.fx+=dx*f;a.fy+=dy*f;b.fx-=dx*f;b.fy-=dy*f;
+  }
+  for(const e of MAP_EDGES){
+    const a=N[e[0]],b=N[e[1]]; if(!a||!b) continue;
+    let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
+    const f=(d-82)*0.022; dx/=d;dy/=d;
+    a.fx+=dx*f;a.fy+=dy*f;b.fx-=dx*f;b.fy-=dy*f;
+  }
+  for(const k of keys){
+    const n=N[k];
+    n.fx+=(W/2-n.x)*0.004; n.fy+=(H/2-n.y)*0.004;
+    if(mapDrag&&mapDrag.key===k) continue;
+    n.vx=clamp((n.vx+n.fx)*0.85,-5,5); n.vy=clamp((n.vy+n.fy)*0.85,-5,5);
+    n.x=clamp(n.x+n.vx,16,W-16); n.y=clamp(n.y+n.vy,22,H-26);
+  }
+  g.clearRect(0,0,W,H);
+  for(const e of MAP_EDGES){
+    const a=N[e[0]],b=N[e[1]]; if(!a||!b) continue;
+    const lit=(focus===e[0]||focus===e[1]);
+    g.strokeStyle=lit?'rgba(127,228,255,0.6)':'rgba(110,125,165,0.2)';
+    g.lineWidth=lit?1.6:1;
+    g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke();
+  }
+  for(const k of keys){
+    const n=N[k], col=ROOM_COL[n.room]||'#9aa2bd';
+    const seen=progress[k]>0, isF=focus===k, r=isF?9:6;
+    if(seen||isF){
+      g.shadowColor=col;g.shadowBlur=isF?16:8;
+      g.fillStyle=col;g.beginPath();g.arc(n.x,n.y,r,0,TAU);g.fill();
+      g.shadowBlur=0;
+    } else {
+      g.fillStyle='#11141f';g.beginPath();g.arc(n.x,n.y,r,0,TAU);g.fill();
+      g.globalAlpha=0.5;g.strokeStyle=col;g.lineWidth=1.6;g.stroke();g.globalAlpha=1;
+    }
+    g.fillStyle=(seen||isF)?'#e8ebf2':'#7d869c';
+    g.font=(isF?'600 ':'')+'9px -apple-system,system-ui,sans-serif';
+    g.textAlign='center';g.textBaseline='top';
+    g.fillText(MAP_LABEL[k]||k,n.x,n.y+r+3);
+  }
+}
+(function(){
+  const cv=document.getElementById('c-map');
+  let moved=false,sx=0,sy=0;
+  const pos=e=>{const r=cv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;
+    return {x:t.clientX-r.left,y:t.clientY-r.top};};
+  const pick=(x,y)=>{
+    if(!mapNodes) return null;
+    let best=null,bd=20;
+    for(const k in mapNodes){
+      const n=mapNodes[k],d=Math.hypot(n.x-x,n.y-y);
+      if(d<bd){bd=d;best=n;}
+    }
+    return best;
+  };
+  const dn=e=>{const p=pos(e);mapDrag=pick(p.x,p.y);moved=false;sx=p.x;sy=p.y;};
+  const mv=e=>{
+    if(!mapDrag)return;
+    const p=pos(e);mapDrag.x=p.x;mapDrag.y=p.y;mapDrag.vx=0;mapDrag.vy=0;
+    if(Math.hypot(p.x-sx,p.y-sy)>4) moved=true;
+  };
+  const up=()=>{ if(mapDrag&&!moved) openConcept(mapDrag.key); mapDrag=null; };
+  cv.addEventListener('mousedown',dn);
+  cv.addEventListener('touchstart',dn,{passive:true});
+  window.addEventListener('mousemove',mv);
+  cv.addEventListener('touchmove',mv,{passive:true});
+  window.addEventListener('mouseup',up);
+  window.addEventListener('touchend',up);
+})();
+
+/* ---- rooms registry + loop ------------------------------------------ */
+const ROOMS={
+  qubit:{cv:'c-qubit',render:renderQubit},
+  interf:{cv:'c-interf',render:renderInterf},
+  entang:{cv:'c-entang',render:renderEntang},
+  measure:{cv:'c-measure',render:renderMeasure},
+  map:{cv:'c-map',render:renderMap}
+};
+let active='qubit';
+let last=performance.now(), ctxAt=0;
+function frame(now){
+  const dt=Math.min((now-last)/1000,0.05);last=now;clock+=dt;
+  if(motionOn) cam.az+=dt*0.085;
+  const R=ROOMS[active], cv=document.getElementById(R.cv);
+  if(cv._w) R.render(dt);
+  if(clock-ctxAt>0.6){updateCtx();ctxAt=clock;}
+  requestAnimationFrame(frame);
+}
+
+/* ---- motion / sound toggles ----------------------------------------- */
+let motionOn=true;
+function toggle(id,set){
+  const el=document.getElementById(id);
+  el.onclick=()=>{el.classList.toggle('on');set(el.classList.contains('on'));};
+}
+toggle('motion',on=>motionOn=on);
+toggle('sound',on=>soundOn=on);
+
+/* ---- camera drag (sphere rooms) ------------------------------------- */
+function orbit(cv){
+  let on=false,px,py;
+  const dn=e=>{on=true;const t=e.touches?e.touches[0]:e;px=t.clientX;py=t.clientY;};
+  const mv=e=>{
+    if(!on)return;e.preventDefault();
+    const t=e.touches?e.touches[0]:e;
+    cam.az+=(t.clientX-px)*0.009;
+    cam.el=clamp(cam.el-(t.clientY-py)*0.009,-1.45,1.45);
+    px=t.clientX;py=t.clientY;
+  };
+  cv.addEventListener('mousedown',dn);
+  cv.addEventListener('touchstart',dn,{passive:false});
+  window.addEventListener('mousemove',mv);
+  cv.addEventListener('touchmove',mv,{passive:false});
+  window.addEventListener('mouseup',()=>on=false);
+  window.addEventListener('touchend',()=>on=false);
+}
+['c-qubit','c-entang','c-measure'].forEach(id=>orbit(document.getElementById(id)));
+
+/* ===================================================================== */
+/* THE READ-FURTHER SYSTEM                                               */
+/* Each concept peels level by level, simple language to real physics.   */
+/* ===================================================================== */
+const CONCEPTS={
+  sphere:{title:'The Bloch sphere',layers:[
+    ['This ball is a map.',
+     'Every way a single qubit can be is one spot on it — and you are looking at the whole map at once.'],
+    ['Pick any point on the surface and you have named a complete state of the qubit.',
+     'Move the point and you have a different qubit. Nothing is left out.'],
+    ['Two numbers find the point: how far it tilts down from the top, and how far it is spun around.',
+     'Two numbers — that is all a single qubit is.'],
+    ['The top point is the state we call |0⟩, the bottom is |1⟩.',
+     'Everything else around the ball is a blend of those two.'],
+    ['The tilt is the angle θ; the turn around is the angle φ.',
+     'The surface is the set of all pure states — qubits with nothing wrong with them.'],
+    ['A point maps to |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ}sin(θ/2)|1⟩.',
+     'The half-angle is why turning the sphere a full 360° is only a 180° change of the state.'],
+    ['Formally, the pure states of a two-level system are the rays of a two-dimensional complex Hilbert space.',
+     'That space of rays is exactly the surface of a sphere — the Bloch sphere.'],
+    ['Write the qubit as a density matrix ρ = ½(I + r·σ), where σ is the vector of Pauli matrices.',
+     'The vector r is the point: |r| = 1 is the surface (pure), |r| &lt; 1 is the interior (mixed), r = 0 is maximally mixed.'],
+    ['The sphere is a faithful picture for one qubit only.',
+     'Two qubits need CP³, not a sphere, and entanglement has no Bloch-sphere picture at all.',
+     'The map runs out exactly where quantum computing gets interesting.'],
+    ['Go one level under the sphere and you find the Hopf fibration.',
+     'The full state space is the 3-sphere S³; dividing out the unobservable global phase — a circle sitting at every point — collapses it onto this 2-sphere.',
+     'The Bloch sphere is a shadow: a 3-sphere, fibred by circles, projected down to something an eye can hold.']
+  ]},
+  superposition:{title:'Superposition',layers:[
+    ['A coin on a table is heads or tails.',
+     'A qubit in superposition is genuinely neither yet — and that is allowed.'],
+    ['When the point sits away from the top and bottom, the qubit leans toward both answers at once.',
+     'It is still one single, definite thing while it does.'],
+    ['It is not halfway between two places it could secretly be.',
+     'The lean itself is the state. There is no hidden real answer underneath it.'],
+    ['How hard it leans each way is set by two amplitudes.',
+     'Near the top it mostly leans to 0; on the equator it leans equally to both.'],
+    ['The amplitudes are cos(θ/2) toward |0⟩ and sin(θ/2) toward |1⟩.',
+     'Square them and they become the probabilities of each measured outcome.'],
+    ['Written out: |ψ⟩ = α|0⟩ + β|1⟩, with |α|² + |β|² = 1.',
+     'α and β are complex numbers — they carry a phase, not just a size.'],
+    ['Superposition is just that the state space is a linear vector space.',
+     'Any unit combination of valid states is itself a valid state.',
+     'Quantum mechanics is linear; superposition is that linearity seen up close.'],
+    ['α and β are probability amplitudes, not probabilities — and amplitudes interfere.',
+     'The Bell and Kochen–Specker theorems show no assignment of pre-existing values can reproduce the predictions.',
+     'Superposition cannot be re-read as mere ignorance.'],
+    ['Why we never see a superposition of a cat is decoherence.',
+     'A large system entangles with its environment so fast that the interference terms vanish for any local observer.',
+     'Where exactly the line between qubit and cat falls is still being measured.'],
+    ['One qubit carries two amplitudes; two qubits, four; n qubits, 2ⁿ.',
+     'That exponentially large space of amplitudes is the resource a quantum computer spends.',
+     'But only the part that cannot be split back into separate single-qubit superpositions — the entangled part — buys any advantage.']
+  ]},
+  phase:{title:'Phase φ',layers:[
+    ['Two qubits can give the exact same answers forever and still not be the same qubit.',
+     'The thing that differs is phase.'],
+    ['Phase is how far the point is turned around the vertical axis.',
+     'It is a direction, not an amount.'],
+    ['Turning the phase never changes the odds of measuring 0 or 1.',
+     'By itself, on a single qubit, it is invisible.'],
+    ['So why keep it?',
+     'Because the moment two quantum paths meet again, their phases decide whether they add or cancel.'],
+    ['Phase lives in the factor e^{iφ} in front of |1⟩.',
+     'The slow circling you see on screen is φ increasing — phase evolving in time.'],
+    ['Only the relative phase between |0⟩ and |1⟩ is physical; a global phase on the whole state is unobservable.',
+     'The Bloch sphere has already quotiented that global phase away — it is why a single sphere suffices.'],
+    ['Time evolution is U = e^{−iHt/ℏ}, and a phase difference builds at a rate set by the energy gap.',
+     'That is Larmor precession — exactly what the animation is showing.'],
+    ['Interference is the cross term: |α + β|² = |α|² + |β|² + 2·Re(α*β).',
+     'That last term, the one carrying the relative phase, is the whole of quantum advantage.',
+     'Erase it and you are left with an ordinary probabilistic computer.'],
+    ['Phase can be geometric rather than dynamical.',
+     'Carry a state around a loop in its parameter space and it picks up a Berry phase that depends only on the path.',
+     'Topological quantum computing tries to store information in such phases, because geometry resists noise.'],
+    ['Phase can even appear with no force acting at all.',
+     'In the Aharonov–Bohm effect a charged particle circles a magnetic field it is fully shielded from, and still picks up a measurable phase.',
+     'Phase is not bookkeeping for forces — it is physically real in its own right, and that was not obvious until 1959.']
+  ]},
+  poles:{title:'The poles |0⟩ and |1⟩',layers:[
+    ['The very top and very bottom of the ball are the two ordinary answers: 0 and 1.',
+     'A normal computer only ever lives at these two spots.'],
+    ['|0⟩ is the top, |1⟩ is the bottom.',
+     'A classical bit is a qubit that is forbidden from leaving them.'],
+    ['At a pole there is nothing turning.',
+     'Phase has no meaning there — there is no around-direction left to point along.'],
+    ['That is why the vector stops drifting when it reaches a pole.',
+     'Precession needs a tilt, and a pole has none.'],
+    ['The poles are the two computational basis states.',
+     'Every other point on the ball is written as a combination of just these two.'],
+    ['|0⟩ and |1⟩ are the eigenvectors of the Pauli-Z operator, with eigenvalues +1 and −1.',
+     'A Z-measurement is the question: which pole are you nearest?'],
+    ['They are only one orthonormal basis among infinitely many.',
+     'The poles look special because we chose to measure in Z; choose X and the poles move to the equator.'],
+    ['Antipodal points on the Bloch sphere are orthogonal states — yet they sit 180° apart, not 90°.',
+     'That factor of two between sphere-geometry and Hilbert-space-geometry is the half-angle again.'],
+    ['A measurement ends on a pole of the chosen basis — but "ends" hides the measurement problem.',
+     'Nothing in the smooth dynamics says when collapse happens, or which pole gets picked.',
+     'Whether that collapse is physical or only apparent is still open.']
+  ]},
+  gates:{title:'Gates',layers:[
+    ['A gate is a move.',
+     'You press it, and the point on the ball slides along an arc to a new spot.'],
+    ['Every gate is a rotation of the sphere.',
+     'Different gates rotate it in different ways.'],
+    ['X is a half-turn that swaps the top and bottom.',
+     'H tips a pole onto the equator — it builds a superposition out of a definite state.'],
+    ['Z, S and T spin the sphere around its vertical axis.',
+     'They never change the odds; they only move the phase.'],
+    ['Each gate has an axis and an angle.',
+     'X, Y, Z are half-turns about the three axes; S is a quarter-turn and T an eighth-turn about the vertical.'],
+    ['A gate is a 2×2 unitary matrix U, acting as |ψ⟩ → U|ψ⟩.',
+     'Unitary means U†U = I: it preserves length, so the probabilities still sum to one.'],
+    ['Every single-qubit gate is an element of SU(2), and every element of SU(2) is a rotation.',
+     'U = e^{−iθ(n·σ)/2} — a turn by some angle about some axis. That exhausts the possibilities.'],
+    ['Gates must be reversible, because unitaries are invertible — no quantum gate can forget an input.',
+     'And {H, T} alone is universal: any single-qubit unitary can be approximated to any precision by those two.'],
+    ['Real gates are not perfect rotations — they drift, and errors accumulate.',
+     'Fault-tolerant computing spreads one logical qubit across many physical ones.',
+     'The threshold theorem says that below roughly 1% error per gate, arbitrarily long computation is possible — and crossing that line reliably is the present frontier.'],
+    ['Gates are not the only way to compute.',
+     'In measurement-based computing you first build one large entangled resource state, then do nothing but measure its qubits one at a time.',
+     'Which measurement to make next, conditioned on earlier outcomes, is the entire program — computation as steered collapse.']
+  ]},
+  measurement:{title:'Measurement',layers:[
+    ['Measuring is asking the qubit a question out loud.',
+     'It cannot stay in-between — it has to pick 0 or 1.'],
+    ['Whatever point the qubit held, the question forces it to jump to a pole.',
+     'The in-between-ness is gone.'],
+    ['Which pole it jumps to is set by chance.',
+     'The closer the point was to the top, the more often the answer is 0.'],
+    ['The odds are the squared amplitudes — the Born rule.',
+     'A point on the equator is a perfect 50/50.'],
+    ['One measurement is a single random draw and tells you almost nothing.',
+     'Prepare the same state many times and the tally converges on the predicted split.'],
+    ['In symbols: P(outcome k) = |⟨k|ψ⟩|².',
+     'After the outcome the state is replaced by |k⟩ — the projection postulate. The phase you had is recorded nowhere.'],
+    ['A projective measurement is a set of orthogonal projectors summing to the identity.',
+     'Outcome k has probability ⟨ψ|Pₖ|ψ⟩, and the post-state is Pₖ|ψ⟩ renormalised; the general case is a POVM.'],
+    ['Measurement is the one non-unitary, irreversible step in the theory — everything else runs reversibly.',
+     'It is where information is created and where phase is destroyed: the thermodynamic arrow, inside quantum mechanics.'],
+    ['Why one definite outcome, and not all of them at once?',
+     'The smooth evolution alone never produces a single result — this is the measurement problem.',
+     'Collapse, many-worlds, decoherence-only, QBism: which is right is not settled by experiment.']
+  ]},
+  amplitude:{title:'Amplitude',layers:[
+    ['Every path a quantum system could take gets an arrow — a length and a direction.',
+     'The length is how strongly that path counts; the direction is its phase.'],
+    ['To find the chance of an outcome, add the arrows of every path leading to it.',
+     'Then square the length of the total. That is the probability.'],
+    ['This is why two paths can give less than one alone — arrows can point against each other and shorten the total.'],
+    ['In symbols the arrow is a complex number, the amplitude; the probability is its modulus squared, |amplitude|².'],
+    ['Amplitudes add; probabilities do not.',
+     'Classical chance has only lengths, never directions — that one missing degree of freedom is the whole of quantum behaviour.'],
+    ['Feynman’s sum-over-histories takes this literally.',
+     'Every possible history contributes an arrow e^{iS/ℏ}, and the path we call classical is simply where neighbouring arrows stop cancelling.']
+  ]},
+  interference:{title:'Interference',layers:[
+    ['When two arrows point the same way they add to a long one — a bright, likely outcome.'],
+    ['When they point opposite ways they cancel — a dark, forbidden outcome.',
+     'Slide the phase and you slide between those extremes.'],
+    ['Nothing was added or removed.',
+     'Both paths are always present; only their alignment changed.'],
+    ['The two detector ports always sum to one — brightness moved from one to the other, it was never lost.'],
+    ['This is a single particle interfering with itself.',
+     'Send the photons one at a time and the pattern still builds, slowly, dot by dot.'],
+    ['Engineering this is what a quantum computer does.',
+     'You arrange the computation so the amplitudes for wrong answers cancel and the amplitude for the right answer survives.'],
+    ['Interference is also fragile.',
+     'Let any stray system learn which path was taken and the two arrows can no longer be added — the pattern washes out. That leak is decoherence.']
+  ]},
+  advantage:{title:'The advantage',layers:[
+    ['A classical computer trying many possibilities must check them one after another.'],
+    ['A quantum computer holds them in superposition and lets their amplitudes interfere in a single pass.'],
+    ['But you only ever read out one answer.',
+     'So the interference must be arranged so the answer you want is the one left standing.'],
+    ['That is hard, and it works only for problems with the right structure — factoring, search, simulation.'],
+    ['Grover’s search nudges the target answer’s amplitude up a little each step while the rest stay flat.'],
+    ['Shor’s algorithm turns factoring into finding a hidden period, and a quantum Fourier transform makes that period interfere into view.'],
+    ['Quantum advantage is never "try everything at once".',
+     'It is "shape the interference so the wrong answers erase themselves" — and most problems have no such shape.']
+  ]},
+  entanglement:{title:'Entanglement',layers:[
+    ['Two qubits can be linked so that neither has a state of its own — only the pair does.'],
+    ['You cannot describe qubit A without mentioning qubit B.',
+     'The description simply does not factor into two separate pieces.'],
+    ['Slide them together here and watch each sphere’s own arrow shrink toward the centre.'],
+    ['At full entanglement each arrow has zero length.',
+     'Ask qubit A anything and the answer is a fair coin flip.'],
+    ['Yet the pair is in a perfectly definite state.',
+     'All of its definiteness has moved out of the parts and into the correlation between them.'],
+    ['Formally, an entangled state cannot be written as |ψ⟩_A ⊗ |φ⟩_B.',
+     'The Bell state (|00⟩ + |11⟩)/√2 is the standard example.'],
+    ['Entanglement is monogamous.',
+     'The more A is entangled with B, the less it can be entangled with anything else — a real constraint, not a metaphor.']
+  ]},
+  mixedstate:{title:'The lost self',layers:[
+    ['When a qubit is entangled, looking at it alone shows a qubit with no definite state — a mixed state.'],
+    ['On the sphere a mixed state is a point inside the ball, not on the surface.',
+     'The dead centre is "knows nothing at all".'],
+    ['The shrinking arrow you see is exactly that — A’s own description sliding off the surface as the link tightens.'],
+    ['This is not the picture being sloppy.',
+     'The missing length is real: information that has genuinely left A and now lives in the correlation.'],
+    ['Mathematically you trace out qubit B; what is left for A is a density matrix with |r| &lt; 1.'],
+    ['The same maths describes a merely noisy qubit — and that is the deep point.',
+     'Noise is unwanted entanglement with the environment.'],
+    ['Decoherence is this happening uninvited: a qubit entangles with the world, its arrow shrinks, and its quantum character quietly leaks away.']
+  ]},
+  nonlocality:{title:'Spooky action',layers:[
+    ['Measure qubit A and it jumps to an answer. In the same instant B is fixed too, with no contact.'],
+    ['It feels like a message — but you cannot send one with it.',
+     'A’s outcome is random, so B’s is random too; neither party can steer it.'],
+    ['Only when the two parties later compare notes does the perfect correlation appear.'],
+    ['So nothing travels faster than light and no signal is sent. Relativity is untouched.'],
+    ['But the correlations are stronger than any pre-agreed plan could produce.',
+     'Bell’s theorem makes that exact, and turns it into a number you can test.'],
+    ['Loophole-free experiments, since 2015, have confirmed it.',
+     'The world is not locally pre-scripted.'],
+    ['"Spooky action at a distance" was Einstein’s complaint.',
+     'The resolution: there is no action — there is one non-local state, and a measurement reads the whole of it at once.']
+  ]},
+  bornrule:{title:'The Born rule',layers:[
+    ['A measurement’s odds come straight from the state: square the amplitude and you have the probability.'],
+    ['A point near the top of the sphere gives 0 often; a point on the equator is a fair 50/50.'],
+    ['This squaring is the one bridge from the smooth quantum world to a definite observed number.'],
+    ['In symbols: P(k) = |⟨k|ψ⟩|².',
+     'The rule is named for Max Born, who added it to the theory by hand in 1926.'],
+    ['Why the square, and not the amplitude itself?',
+     'It is the only rule consistent with how probabilities must combine — but it stays a postulate, not a proof.'],
+    ['Gleason’s theorem comes close.',
+     'In three dimensions or more, the squared-amplitude rule is the only consistent probability measure on quantum states.'],
+    ['The Born rule is where the theory stops being deterministic.',
+     'Everything else evolves smoothly and predictably; here, and only here, chance enters.']
+  ]},
+  collapse:{title:'Collapse',layers:[
+    ['Before a measurement the qubit is spread across the sphere. After it, the qubit sits on a single pole.'],
+    ['That jump is collapse — and it is not gentle.',
+     'The superposition and the phase are simply gone.'],
+    ['It is the one irreversible step. A gate can be undone; a measurement cannot.'],
+    ['You cannot collapse a state and then recover what it was.',
+     'That would need copying an unknown state, which quantum mechanics forbids — the no-cloning theorem.'],
+    ['In the formalism collapse is a projection: the state is replaced by the part of it that agrees with the outcome, renormalised.'],
+    ['When collapse happens, and whether it is a physical event at all, is not specified by the equations.'],
+    ['Decoherence explains why we never see a superposition — but it does not, by itself, pick the single outcome.',
+     'That gap is the open wound of the theory.']
+  ]},
+  measproblem:{title:'The measurement problem',layers:[
+    ['The smooth law of quantum mechanics, run forward, never produces a single outcome.',
+     'It produces all of them at once, superposed.'],
+    ['Yet every experiment you have ever done gave exactly one result.',
+     'Something is missing between the law and the world.'],
+    ['That gap is the measurement problem — and it is unsolved, not for lack of effort but for lack of evidence.'],
+    ['Collapse theories add a real, physical jump to the law, and predict tiny deviations that are being hunted now.'],
+    ['Many-worlds removes collapse entirely: every outcome happens, each in its own branch.',
+     'The randomness is just which branch you find yourself in.'],
+    ['QBism reads the quantum state as one agent’s expectations, so "collapse" is only that agent updating its beliefs.'],
+    ['The mathematics is the same for all of them, and they make almost the same predictions.',
+     'Choosing between them is, for now, physics shading into philosophy — the deepest open question you will meet here.']
+  ]},
+  nocloning:{title:'No-cloning',layers:[
+    ['You cannot photocopy a qubit.',
+     'There is no operation that takes an unknown qubit and makes a second, identical one.'],
+    ['A classical bit copies freely — that is what a hard drive does all day.',
+     'A qubit in an unknown state simply cannot be copied.'],
+    ['The reason is the linearity of gates.',
+     'A copier built to work on |0⟩ and |1⟩ would, by linearity, give the wrong answer for every superposition between them.'],
+    ['So you cannot back up a qubit, and you cannot quietly eavesdrop on one — any attempt leaves a trace.'],
+    ['This is the no-cloning theorem, proved by Wootters, Zurek and Dieks in 1982.',
+     'It is a one-line proof with enormous consequences.'],
+    ['It is what makes quantum key distribution secure.',
+     'An eavesdropper cannot copy the qubits in transit, so any tampering shows up as errors.'],
+    ['It also forbids sending signals faster than light through entanglement.',
+     'And it is why a measured state cannot be un-measured — undoing it would need a copy you were never allowed to keep.']
+  ]},
+  doubleslit:{title:'The double slit',layers:[
+    ['Send particles at a barrier with two slits.',
+     'On the screen behind, you get a striped pattern of bright and dark bands.'],
+    ['Bright bands are where the two paths arrive in step.',
+     'Dark bands are where they arrive out of step and cancel.'],
+    ['The strange part: the pattern still builds when you send the particles one at a time, with long gaps between them.'],
+    ['Each particle crosses both slits as a superposition, interferes with itself, and only then lands as a single dot.'],
+    ['Close one slit and the stripes vanish — with only one path, there is nothing to interfere with.'],
+    ['Put a detector at the slits to catch which one each particle took, and the stripes vanish too.',
+     'Knowing the path destroys the interference.'],
+    ['Feynman called this "the only mystery" of quantum mechanics.',
+     'Every other strange feature is some version of this one experiment.']
+  ]},
+  decoherence:{title:'Decoherence',layers:[
+    ['Interference is delicate. It survives only while the two paths stay perfectly indistinguishable.'],
+    ['Let anything in the environment — a stray photon, a vibration — record which path was taken, and the interference washes out.'],
+    ['Nothing has to be a deliberate measurement.',
+     'The environment recording the system by accident is enough.'],
+    ['This is decoherence: a quantum system leaking its phase information into its surroundings.'],
+    ['It is fast. For anything larger than a few atoms it happens in far less than a nanosecond.',
+     'That speed is why the everyday world looks solid and classical.'],
+    ['Decoherence does not collapse the state.',
+     'It spreads the superposition into the system-plus-environment, where no local observer can reach the interference any more.'],
+    ['It is the central engineering enemy of a quantum computer.',
+     'Every qubit must be isolated well enough to finish computing before its phase leaks away.']
+  ]},
+  bell:{title:'Bell’s theorem',layers:[
+    ['Maybe entangled particles just carry secret instructions, fixed in advance, that decide every measurement.',
+     'It is the natural guess — and it is wrong.'],
+    ['In 1964 John Bell found a way to test that guess.'],
+    ['He showed that any such pre-agreed plan must obey a numerical limit — a ceiling on how correlated the results can be.'],
+    ['Quantum mechanics predicts correlations that climb above that ceiling.'],
+    ['So the two pictures do not merely disagree in spirit — they disagree on a number you can measure.'],
+    ['Every careful experiment, loophole-free since 2015, finds the quantum number.',
+     'The pre-agreed-plan picture is ruled out.'],
+    ['The conclusion is forced: the world is not "locally real".',
+     'You may keep locality or keep pre-existing values — you cannot keep both. That is measured, not argued.']
+  ]},
+  teleport:{title:'Teleportation',layers:[
+    ['Quantum teleportation moves the exact state of one qubit onto another, far away — without the qubit itself travelling.'],
+    ['It costs one shared entangled pair and two bits of ordinary communication.'],
+    ['The sender measures their qubit together with their half of the pair.',
+     'That measurement destroys the original and yields two classical bits.'],
+    ['Those two bits are sent by any normal channel.',
+     'The receiver uses them to rotate their half of the pair into the original state.'],
+    ['Nothing outran light: without the two classical bits, the receiver holds only noise.'],
+    ['And the original is gone — teleportation is a move, not a copy, exactly as no-cloning demands.'],
+    ['It is not science-fiction transport.',
+     'It is the routing primitive of a quantum network — how a quantum internet would pass states between nodes.']
+  ]},
+  observer:{title:'The observer',layers:[
+    ['"Observing" a quantum system changes it — and that has bred a famous misunderstanding.'],
+    ['It does not mean a conscious mind is required. A human looking is not the thing that matters.'],
+    ['What matters is interaction: the system becoming entangled with anything that records its state.',
+     'A detector, a photon, a stray air molecule will all do it.'],
+    ['A measuring device left running in an empty room measures perfectly well.',
+     'No one needs to read the dial.'],
+    ['The "observer" in quantum mechanics is any physical system the quantum system cannot help but correlate with.'],
+    ['Interpretations where consciousness causes collapse do exist — but they are a minority view, and no experiment requires them.'],
+    ['The honest statement: measurement is a physical interaction, not a mental act.',
+     'The mystery is real, but it is not about minds.']
+  ]},
+  zeno:{title:'The Zeno effect',layers:[
+    ['A watched quantum pot never boils.',
+     'Measure a quantum system often enough and you can freeze it in place.'],
+    ['A state left alone drifts away from where it started — slowly at first.'],
+    ['Measure it almost immediately and it has barely moved, so it almost certainly snaps back to the start.'],
+    ['Do that again and again, fast enough, and it never gets the chance to drift at all.'],
+    ['This is the quantum Zeno effect, named for the ancient paradox of the arrow that never moves.'],
+    ['It is real and demonstrated — trapped ions and atoms have been held frozen by repeated measurement.'],
+    ['There is a mirror image, the anti-Zeno effect, where badly timed measurements speed decay up instead.',
+     'Together they show measurement is not a passive look — it is an active push on the system.']
+  ]},
+  uncertainty:{title:'Uncertainty',layers:[
+    ['You cannot pin down everything about a qubit at once.',
+     'Sharpening one property blurs another.'],
+    ['The poles answer the question "0 or 1?" sharply.',
+     'But ask an equator question of that same state and the answer is a coin flip.'],
+    ['These are complementary: a state definite along one axis is maximally uncertain along a perpendicular one.'],
+    ['It is not clumsy instruments.',
+     'The state simply does not hold a sharp value for both at the same time.'],
+    ['This is Heisenberg’s uncertainty principle in its cleanest form — for a qubit, between the three Pauli axes.'],
+    ['Mathematically, observables that do not commute cannot share a definite value.',
+     'The size of the unavoidable blur is set by their commutator.'],
+    ['Uncertainty is not a limit on knowledge.',
+     'It is the statement that the sharp values were never simultaneously there to be known.']
+  ]},
+  realqubits:{title:'Real qubits',layers:[
+    ['On this screen a qubit is a clean point on a sphere. In a lab it is a fragile physical thing.'],
+    ['A qubit can be the spin of an electron, the polarization of a photon, or the energy levels of a tiny superconducting circuit.'],
+    ['Whatever the hardware, the same Bloch sphere describes it — the mathematics does not care what the qubit is made of.'],
+    ['Superconducting qubits are tiny circuits cooled to near absolute zero. Trapped-ion qubits are single atoms held still in electric fields.'],
+    ['Each platform trades off the same things: how long the qubit holds its state, how fast and cleanly gates run, how many you can wire together.'],
+    ['Real qubits hold their state for microseconds to seconds — then decoherence wins.',
+     'Every computation is a race against that clock.'],
+    ['There is no clear winner yet.',
+     'Which physical qubit scales to a genuinely useful machine is one of the open questions of the field.']
+  ]},
+  eraser:{title:'The quantum eraser',layers:[
+    ['In the double slit, learning which path a particle took destroys the interference pattern.'],
+    ['Now the twist: what if you erase that which-path information again, after the particle has already landed?'],
+    ['Do it, and the interference pattern comes back.'],
+    ['You sort the landed particles by the erased information, and each group shows stripes again.'],
+    ['It sounds like changing the past — but it is not.',
+     'Each particle always landed exactly where it landed.'],
+    ['What changed is which subset you look at.',
+     'The stripes were hidden in correlations, not created after the fact.'],
+    ['The eraser shows interference is not about a particle "deciding" — it is about whether the which-path information exists anywhere at all.']
+  ]},
+  information:{title:'Quantum information',layers:[
+    ['A classical bit is the smallest unit of ordinary information: one yes-or-no answer.'],
+    ['A qubit is the unit of quantum information — and it carries something a bit cannot: amplitude and phase.'],
+    ['Yet when you measure a single qubit you get just one bit out.',
+     'The extra structure is real, but it is not freely readable.'],
+    ['Information, in this view, is physical: it lives in states of matter and obeys the laws those states obey.'],
+    ['That is why no-cloning, interference and entanglement are information-theoretic facts, not just physics curiosities.'],
+    ['Quantum information theory rebuilds Shannon’s theory on this base — channels, entropy and capacity all get quantum versions.'],
+    ['The deep idea: computation is physics.',
+     'What can be computed, and how fast, depends on what the universe physically allows — and the universe is quantum.']
+  ]},
+  cat:{title:'Schrödinger’s cat',layers:[
+    ['Schrödinger imagined a cat in a box, its life tied to a single decaying atom.'],
+    ['If the atom is in a superposition of decayed and not-decayed, the cat is dragged into a superposition of dead and alive.'],
+    ['He did not mean this as a wonder. He meant it as a complaint — a reductio showing something is wrong with naive superposition.'],
+    ['The resolution is decoherence: a cat is enormous, entangles with its surroundings instantly, and is never in a clean superposition for any observable length of time.'],
+    ['The atom genuinely can be superposed. The cat, for all practical purposes, cannot.'],
+    ['But "for all practical purposes" is doing real work in that sentence.',
+     'It is decoherence hiding the superposition — not a law forbidding it.'],
+    ['The cat marks the unfinished border: where exactly the quantum world hands off to the classical one is still, precisely, the open question.']
+  ]}
+};
+const ROOM_CHIPS={
+  qubit:[['sphere','the sphere'],['superposition','superposition'],['phase','phase φ'],
+    ['poles','the poles'],['gates','gates'],['measurement','measurement'],
+    ['nocloning','no-cloning'],['uncertainty','uncertainty'],['realqubits','real qubits']],
+  interf:[['amplitude','amplitude'],['interference','interference'],['advantage','the advantage'],
+    ['doubleslit','the double slit'],['decoherence','decoherence'],
+    ['eraser','the quantum eraser'],['information','quantum information']],
+  entang:[['entanglement','entanglement'],['mixedstate','the lost self'],['nonlocality','spooky action'],
+    ['bell','Bell’s theorem'],['teleport','teleportation']],
+  measure:[['bornrule','the Born rule'],['collapse','collapse'],['measproblem','the measurement problem'],
+    ['observer','the observer'],['zeno','the Zeno effect'],['cat','Schrödinger’s cat']],
+  map:[]
+};
+const TRYS={
+  qubit:'press H, then Z, then H again — a phase turn becomes a flip. That swap is the trick inside every quantum algorithm.',
+  interf:'auto-sweep the phase and watch the bright port empty completely into the dark one — nothing is lost, only moved.',
+  entang:'slide entanglement to 100%, then measure A. B answers the same in that instant — and you never touched it.',
+  measure:'set the tilt near the top and measure once — probably 0. Now measure ×200 and watch the tally find the real odds.',
+  map:'drag a concept to pull the whole web around. The dots you have opened glow — click any dot to read it.'
+};
+
+let focus=null, depth=0;
+const progress={};   /* concept key -> deepest level reached — the learning trail */
+const chipsEl=document.getElementById('chips');
+const drawerEl=document.getElementById('drawer');
+function buildChips(room){
+  chipsEl.innerHTML='';
+  ROOM_CHIPS[room].forEach(([key,lab])=>{
+    const b=document.createElement('button');
+    b.className='chip';b.textContent=lab;b.dataset.k=key;
+    b.onclick=()=>openConcept(key);
+    chipsEl.appendChild(b);
+  });
+}
+function openConcept(key){
+  if(focus===key){focus=null;depth=0;}
+  else{focus=key;depth=1;tone(330,0.12,0.05);}
+  renderDrawer();
+}
+function renderDrawer(){
+  document.querySelectorAll('.chip').forEach(c=>
+    c.classList.toggle('on',c.dataset.k===focus));
+  if(!focus){
+    drawerEl.innerHTML='<p class="hint">Pick a word above. '+
+      'Each one opens at its simplest, then reads further — level by level, down to the real physics.</p>';
+    return;
+  }
+  const c=CONCEPTS[focus];
+  progress[focus]=Math.max(progress[focus]||0,depth);
+  const TAGS=['start here','in plain words','a little more precisely',
+    'the working picture','now the structure','the mathematics',
+    'stated formally','the technical phrasing','at the edge'];
+  const tot=c.layers.length;
+  const tagFor=i=>TAGS[tot<2?0:Math.round(i/(tot-1)*(TAGS.length-1))];
+  let h=`<h3>${c.title}</h3>`;
+  for(let i=0;i<depth;i++){
+    h+=`<div class="layer${i===depth-1?' fade':''}">`+
+       `<span class="depthtag">${tagFor(i)}</span>`+
+       c.layers[i].map(s=>`<span class="line">${s}</span>`).join('')+`</div>`;
+  }
+  if(depth<tot)
+    h+=`<div class="deepwrap"><button class="deeper" id="deeper">read further ↓</button>`+
+       `<span class="lvl">level ${depth} of ${tot}</span></div>`;
+  else
+    h+=`<p class="floor">level ${tot} of ${tot} — the bottom of this idea</p>`;
+  drawerEl.innerHTML=h;
+  const d=document.getElementById('deeper');
+  if(d) d.onclick=()=>{depth++;tone(294,0.12,0.05);renderDrawer();};
+}
+
+/* ---- room switching ------------------------------------------------- */
+function showRoom(name){
+  active=name;
+  for(const k in ROOMS)
+    document.getElementById('room-'+k).classList.toggle('on',k===name);
+  document.querySelectorAll('.tab').forEach(t=>
+    t.classList.toggle('on',t.dataset.r===name));
+  fit(document.getElementById(ROOMS[name].cv));
+  focus=null;depth=0;
+  buildChips(name);renderDrawer();
+  document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS[name];
+}
+document.querySelectorAll('.tab').forEach(t=>
+  t.onclick=()=>showRoom(t.dataset.r));
+window.addEventListener('resize',()=>fit(document.getElementById(ROOMS[active].cv)));
+
+/* ---- ask the brain -------------------------------------------------- */
+function buildContext(){
+  const roomName={qubit:'The Qubit',interf:'Interference',
+    entang:'Entanglement',measure:'Measurement'}[active];
+  const p=['Room: '+roomName];
+  if(focus){
+    const c=CONCEPTS[focus];
+    p.push(`reading "${c.title}" at level ${depth} of ${c.layers.length}`);
+  }
+  if(active==='qubit'){
+    const th=Math.acos(clamp(qV.z,-1,1)),ph=(Math.atan2(qV.y,qV.x)+TAU)%TAU;
+    p.push(`qubit at θ=${piStr(th)}, φ=${piStr(ph)}`);
+  } else if(active==='interf'){
+    p.push(`path-2 phase ${piStr(iPhase.value/100)}`);
+  } else if(active==='entang'){
+    p.push(`entanglement ${(Math.sin(eAmt.value/100*Math.PI/2)*100|0)}%`);
+  } else if(active==='measure'){
+    p.push(`tally ${mC0} zeros / ${mC1} ones`);
+  }
+  const seen=Object.keys(progress);
+  if(seen.length) p.push('explored so far — '+
+    seen.map(k=>CONCEPTS[k].title+' (to level '+progress[k]+')').join(', '));
+  return p.join('; ')+'.';
+}
+function updateCtx(){
+  const el=document.getElementById('askctx');
+  if(el) el.textContent='context: '+buildContext();
+}
+function askMsg(kind,text){
+  const log=document.getElementById('asklog');
+  const d=document.createElement('div');
+  d.className='msg '+kind; d.textContent=text;
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+function ask(){
+  const inp=document.getElementById('askin');
+  const q=inp.value.trim(); if(!q) return;
+  inp.value='';
+  const ctx=buildContext();
+  askMsg('you',q);
+  if(!BRAIN_ENDPOINT){
+    askMsg('note','Standalone — no brain attached. Installed in a brain, this question goes to the brain for an answer with the context below loaded; the brain answers and remembers what you asked.');
+    askMsg('ctx',ctx);
+    return;
+  }
+  askMsg('note','asking the brain…');
+  fetch(BRAIN_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message:q,context:ctx,app:'quantum-room'})})
+    .then(r=>r.json())
+    .then(d=>askMsg('brain',d.reply||'(the brain returned no reply)'))
+    .catch(e=>askMsg('note','could not reach the brain — '+e.message));
+}
+document.getElementById('asksend').onclick=ask;
+document.getElementById('askin').addEventListener('keydown',e=>{
+  if(e.key==='Enter') ask();
+});
+
+/* ---- go ------------------------------------------------------------- */
+window.addEventListener('load',()=>{
+  for(const k in ROOMS) fit(document.getElementById(ROOMS[k].cv));
+  buildChips('qubit');renderDrawer();
+  document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS.qubit;
+  requestAnimationFrame(frame);
+});
+</script>
+</body>
+</html>
