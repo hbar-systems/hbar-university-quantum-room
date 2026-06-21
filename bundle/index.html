@@ -150,6 +150,33 @@
     border-radius:9px;padding:0 16px;cursor:pointer;font-family:inherit;font-size:13px}
   .askrow button:hover{background:#243057}
 
+  /* guided journeys */
+  .jbar{margin:8px 0 12px;background:#101a2c;border:1px solid #3c5c78;border-radius:12px;padding:12px 15px}
+  .jb-head{display:flex;align-items:baseline;gap:10px}
+  .jb-title{font-family:Georgia,serif;font-size:15px;color:var(--cy)}
+  .jb-step{font-size:11px;color:var(--faint)}
+  .jb-spacer{flex:1}
+  .jb-exit{background:none;border:none;color:var(--faint);cursor:pointer;font-size:11.5px;font-family:inherit}
+  .jb-exit:hover{color:var(--ink)}
+  .jb-text{font-size:14px;color:#cdd3e6;margin:9px 0;line-height:1.55}
+  .jb-foot{display:flex;align-items:center;gap:12px}
+  .jb-status{font-size:12.5px;flex:1}
+  .jb-status.done{color:#7fd9a0}
+  .jb-status.wait{color:var(--faint)}
+  .jb-next{background:#1c2647;color:var(--cy);border:1px solid #38507a;border-radius:8px;
+    padding:8px 15px;cursor:pointer;font-family:inherit;font-size:13px}
+  .jb-next:disabled{opacity:.4;cursor:default}
+  .jb-next:not(:disabled):hover{background:#243057}
+  .jlist{display:flex;flex-direction:column;gap:10px}
+  .jcard{background:#10142a;border:1px solid #232a47;border-radius:12px;padding:14px 16px;
+    display:flex;align-items:center;gap:14px}
+  .jcard .jc-main{flex:1}
+  .jc-t{font-family:Georgia,serif;font-size:16px;color:var(--ink)}
+  .jc-d{font-size:12.5px;color:var(--mut);margin-top:3px;line-height:1.5}
+  .jc-n{font-size:11px;color:var(--faint);margin-top:4px}
+  .jstart{background:#1c2647;color:var(--cy);border:1px solid #38507a;border-radius:9px;
+    padding:9px 16px;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap}
+  .jstart:hover{background:#243057}
   .try{margin:2px 0 12px;font-size:12.5px;color:var(--cy);
     background:#101a2c;border:1px solid #23344e;border-radius:9px;padding:8px 13px}
   .try b{color:var(--mut);font-weight:500}
@@ -200,6 +227,7 @@
 </header>
 
 <nav>
+  <button class="tab" data-r="journeys">Journeys</button>
   <button class="tab on" data-r="qubit"><span class="n">1</span>The Qubit</button>
   <button class="tab" data-r="interf"><span class="n">2</span>Interference</button>
   <button class="tab" data-r="entang"><span class="n">3</span>Entanglement</button>
@@ -214,6 +242,20 @@
   <button class="mini on" id="motion" title="Motion — the gentle continuous turning. On the qubit this is phase precessing in time; turn it off to freeze and study. (The Gate Lab is always still.)"><span class="dot"></span>motion</button>
   <button class="mini on" id="sound" title="Sound — short tones on gates, measurements and outcomes. Turn off for silence."><span class="dot"></span>sound</button>
 </nav>
+
+<div class="jbar" id="journeybar" style="display:none">
+  <div class="jb-head">
+    <span class="jb-title" id="jb-title"></span>
+    <span class="jb-step" id="jb-step"></span>
+    <span class="jb-spacer"></span>
+    <button class="jb-exit" id="jb-exit">exit journey</button>
+  </div>
+  <div class="jb-text" id="jb-text"></div>
+  <div class="jb-foot">
+    <span class="jb-status" id="jb-status"></span>
+    <button class="jb-next" id="jb-next">next →</button>
+  </div>
+</div>
 
 <div class="try" id="try"></div>
 
@@ -404,6 +446,12 @@
   </div>
   <div class="read mono" id="bell-read"></div>
   <div class="math mathstrip mono" id="bell-math"></div>
+</section>
+
+<!-- JOURNEYS -->
+<section class="room" id="room-journeys">
+  <div class="roomsub">Guided paths through the rooms. Each is a few steps with a checkpoint — do the thing, watch it click, move on. New here? Start with the first.</div>
+  <div class="jlist" id="jlist"></div>
 </section>
 
 <!-- ROOM MAP -->
@@ -1480,6 +1528,7 @@ const ROOMS={
   two:{cv:'c-two',render:renderTwo},
   algo:{cv:'c-algo',render:renderAlgo},
   bell:{cv:'c-bell',render:renderBell},
+  journeys:{},
   map:{cv:'c-map',render:renderMap}
 };
 let active='qubit';
@@ -1487,8 +1536,9 @@ let last=performance.now(), ctxAt=0;
 function frame(now){
   const dt=Math.min((now-last)/1000,0.05);last=now;clock+=dt;
   if(motionOn && active!=='gates') cam.az+=dt*0.085;
-  const R=ROOMS[active], cv=document.getElementById(R.cv);
-  if(cv._w) R.render(dt);
+  const R=ROOMS[active], cv=R.cv?document.getElementById(R.cv):null;
+  if(R.render && cv && cv._w) R.render(dt);
+  journeyTick();
   if(clock-ctxAt>0.6){updateCtx();ctxAt=clock;}
   requestAnimationFrame(frame);
 }
@@ -2106,6 +2156,7 @@ const ROOM_CHIPS={
     ['superdense','superdense coding'],['teleport','teleportation'],['information','quantum information']],
   bell:[['chsh','Bell’s inequality'],['bell','Bell’s theorem'],['nonlocality','spooky action'],
     ['entanglement','entanglement']],
+  journeys:[],
   map:[]
 };
 const TRYS={
@@ -2117,6 +2168,7 @@ const TRYS={
   two:'press Bell, then read S(ρ_A) = 1 bit — each qubit has lost its own state entirely into the pair.',
   algo:'pick a marked item, then step Grover. Watch one bar climb and the rest drain — and stop at step 2, the peak.',
   bell:'press snap to optimal and watch S pass 2 and reach 2.83 — you just ruled out every locally pre-determined theory of the world.',
+  journeys:'pick a path below and follow the steps — each one ends in a small "aha".',
   map:'drag a concept to pull the whole web around. The dots you have opened glow — click any dot to read it.'
 };
 
@@ -2183,20 +2235,21 @@ function showRoom(name){
     document.getElementById('room-'+k).classList.toggle('on',k===name);
   document.querySelectorAll('.tab').forEach(t=>
     t.classList.toggle('on',t.dataset.r===name));
-  fit(document.getElementById(ROOMS[name].cv));
+  const _cvId=ROOMS[name].cv; if(_cvId){const _c=document.getElementById(_cvId); if(_c) fit(_c);}
   focus=null;depth=0;
   buildChips(name);renderDrawer();
   document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS[name];
 }
 document.querySelectorAll('.tab').forEach(t=>
   t.onclick=()=>showRoom(t.dataset.r));
-window.addEventListener('resize',()=>fit(document.getElementById(ROOMS[active].cv)));
+window.addEventListener('resize',()=>{const id=ROOMS[active].cv; if(id){const c=document.getElementById(id); if(c) fit(c);}});
 
 /* ---- ask the brain -------------------------------------------------- */
 function buildContext(){
   const roomName={qubit:'The Qubit',interf:'Interference',
     entang:'Entanglement',measure:'Measurement',
-    gates:'Gate Lab',two:'Two Qubits',algo:'Algorithms',bell:'Bell Test',map:'Concept Map'}[active];
+    gates:'Gate Lab',two:'Two Qubits',algo:'Algorithms',bell:'Bell Test',
+    journeys:'Journeys',map:'Concept Map'}[active];
   const p=['Room: '+roomName];
   if(focus){
     const c=CONCEPTS[focus];
@@ -2265,10 +2318,99 @@ document.getElementById('askin').addEventListener('keydown',e=>{
   if(e.key==='Enter') ask();
 });
 
+/* ===================================================================== */
+/* GUIDED JOURNEYS — scripted multi-room lessons with live checkpoints    */
+/* ===================================================================== */
+const JOURNEYS=[
+  {id:'qubit-really',title:'The qubit, really',blurb:'What one qubit actually is — superposition, phase, and why a full turn is only half a state.',steps:[
+    {room:'qubit',text:'This whole ball is a single qubit — every point on it is a possible state. Drag it around to look from all sides.'},
+    {room:'qubit',text:'Press H. The arrow swings off the pole |0⟩ down to the equator — a genuine 50/50 blend of 0 and 1.',goal:'apply H (reach the equator)',check:()=>Math.abs(qV.z)<0.5},
+    {room:'qubit',text:'Now press Z a few times. On the equator it only spins the arrow around — the odds of 0 vs 1 never change. That invisible turn is phase.'},
+    {room:'qubit',text:'Open “phase φ” in the chips below and read a level or two — phase is invisible on its own, but it decides everything once two paths recombine.',goal:'open the phase concept',check:()=>focus==='phase'}
+  ]},
+  {id:'entangle-nonlocal',title:'Entanglement & nonlocality',blurb:'Build a Bell pair, then use it to prove the world is not locally pre-determined.',steps:[
+    {room:'two',text:'Press “Bell”. Two independent qubits fuse into one inseparable pair.',goal:'create a Bell state',check:()=>t2Metrics(t2).S>0.99},
+    {room:'two',text:'Read S(ρ_A) = 1 bit: each qubit now has NO state of its own — all the information lives in the link between them. Next we test what that link can do.'},
+    {room:'bell',text:'Press “snap to optimal”. Watch the combined correlation S climb past the classical ceiling of 2.',goal:'push S past 2',check:()=>{const a=bellGet();return Math.abs(corrE(a.a,a.b)-corrE(a.a,a.b2)+corrE(a.a2,a.b)+corrE(a.a2,a.b2))>2.4;}},
+    {room:'bell',text:'S reached 2√2 ≈ 2.83 — impossible for any locally pre-set world. Open “Bell’s inequality” to see exactly why this kills local realism.',goal:'open the CHSH concept',check:()=>focus==='chsh'}
+  ]},
+  {id:'first-algorithm',title:'Your first algorithm',blurb:'Grover’s search — watch interference amplify the answer, and learn when to stop.',steps:[
+    {room:'algo',text:'Make sure “Grover search” is selected, then pick a marked item to hunt for.',goal:'select Grover',check:()=>alg==='grover'},
+    {room:'algo',text:'Press “step” once. The oracle flips the marked item’s sign and diffusion pours amplitude onto its bar while the rest drain.',goal:'take one Grover step',check:()=>alg==='grover'&&aStep>=1},
+    {room:'algo',text:'Press “step” again — at step 2 the marked item is near-certain. That peak is about (π/4)√N steps.',goal:'reach the peak (step 2)',check:()=>aStep>=2},
+    {room:'algo',text:'Keep stepping and it OVER-rotates back down. Amplitude amplification is a rotation, not a ratchet — knowing when to stop IS the algorithm.'}
+  ]},
+  {id:'gates-are-turns',title:'Every gate is a turn',blurb:'See gates as rotations, and read the matrix that proves two different routes give the same result.',steps:[
+    {room:'gates',text:'Press X. The whole sphere flips top-to-bottom — X is the quantum NOT, and it is exactly a π rotation about the x-axis.',goal:'apply X (flip to |1⟩)',check:()=>gV.z<-0.4},
+    {room:'gates',text:'Press “reset”, then the “H·Z·H = X” identity button. Three separate turns compose into the single flip you just did.',goal:'run the H·Z·H identity',check:()=>gSeq.length>=3},
+    {room:'gates',text:'Turn on “math” in the top bar and read “U total” — the matrix product is the proof the route equals X. Open “gates as rotations” to go deeper.',goal:'open the unitary concept',check:()=>focus==='unitary'}
+  ]}
+];
+let activeJourney=null, journeyStep=0, stepDone=false;
+function startJourney(id){
+  activeJourney=JOURNEYS.find(j=>j.id===id)||null;
+  if(activeJourney) gotoStep(0);
+}
+function gotoStep(i){
+  journeyStep=i; stepDone=false;
+  showRoom(activeJourney.steps[i].room);
+  renderJourneyBar();
+}
+function journeyNext(){
+  if(!activeJourney) return;
+  if(journeyStep>=activeJourney.steps.length-1) finishJourney();
+  else gotoStep(journeyStep+1);
+}
+function finishJourney(){
+  const t=activeJourney.title; activeJourney=null; renderJourneyBar();
+  document.getElementById('try').innerHTML=`<b>Journey complete —</b> “${t}”. Pick another in Journeys, or roam free.`;
+  tone(659,0.3,0.12);
+}
+function exitJourney(){ activeJourney=null; renderJourneyBar(); }
+function journeyTick(){
+  if(!activeJourney) return;
+  const st=activeJourney.steps[journeyStep];
+  if(st.check && !stepDone){
+    let ok=false; try{ ok=!!st.check(); }catch(e){}
+    if(ok){ stepDone=true; tone(523,0.16,0.08); renderJourneyBar(); }
+  }
+}
+function renderJourneyBar(){
+  const bar=document.getElementById('journeybar');
+  if(!activeJourney){ bar.style.display='none'; return; }
+  bar.style.display='block';
+  const st=activeJourney.steps[journeyStep], n=activeJourney.steps.length;
+  document.getElementById('jb-title').textContent=activeJourney.title;
+  document.getElementById('jb-step').textContent=`step ${journeyStep+1} / ${n}`;
+  document.getElementById('jb-text').innerHTML=st.text;
+  const status=document.getElementById('jb-status'), next=document.getElementById('jb-next');
+  const needsCheck=!!st.check;
+  if(!needsCheck){ status.className='jb-status'; status.textContent=''; }
+  else if(stepDone){ status.className='jb-status done'; status.textContent='✓ done'; }
+  else { status.className='jb-status wait'; status.textContent='goal: '+(st.goal||'do the step above'); }
+  next.disabled=needsCheck && !stepDone;
+  next.textContent = journeyStep>=n-1 ? 'finish ✓' : 'next →';
+}
+function buildJourneyList(){
+  const el=document.getElementById('jlist'); if(!el) return;
+  el.innerHTML='';
+  JOURNEYS.forEach(j=>{
+    const card=document.createElement('div'); card.className='jcard';
+    card.innerHTML=`<div class="jc-main"><div class="jc-t">${j.title}</div>`+
+      `<div class="jc-d">${j.blurb}</div><div class="jc-n">${j.steps.length} steps</div></div>`;
+    const b=document.createElement('button'); b.className='jstart'; b.textContent='start →';
+    b.onclick=()=>startJourney(j.id);
+    card.appendChild(b); el.appendChild(card);
+  });
+}
+document.getElementById('jb-next').onclick=journeyNext;
+document.getElementById('jb-exit').onclick=exitJourney;
+
 /* ---- go ------------------------------------------------------------- */
 window.addEventListener('load',()=>{
   loadProgress();
-  for(const k in ROOMS) fit(document.getElementById(ROOMS[k].cv));
+  for(const k in ROOMS){const id=ROOMS[k].cv; if(id){const c=document.getElementById(id); if(c) fit(c);}}
+  buildJourneyList();
   buildChips('qubit');renderDrawer();
   document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS.qubit;
   requestAnimationFrame(frame);

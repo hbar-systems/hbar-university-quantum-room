@@ -54,7 +54,7 @@
 dialect: brain-app/v1
 id: quantum-room
 name: The Quantum Room
-version: 0.7.0
+version: 0.8.0
 description: Learn quantum mechanics by playing — seven rooms (qubit, gates, two-qubit, algorithms, and more), a concept map, and layered explanations from plain language down to the real mathematics.
 license: AGPL-3.0
 
