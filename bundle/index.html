@@ -71,6 +71,7 @@
   .rax{font-size:12px;color:var(--mut);align-self:center;margin-right:2px;letter-spacing:.4px}
   .gate.wide{width:auto;padding:0 9px;font-size:13px}
   .act.sm{padding:6px 9px;font-size:12px}
+  [data-cg].armed{border-color:var(--am)!important;color:var(--am)!important;background:#1e2442}
   .act{background:#141833;color:var(--mut);border:1px solid #272e4d;
     padding:8px 13px;border-radius:9px;cursor:pointer;font-size:12.5px;
     font-family:inherit;transition:.12s}
@@ -249,6 +250,7 @@
   <button class="tab" data-r="bell"><span class="n">8</span>Bell Test</button>
   <button class="tab" data-r="tele"><span class="n">9</span>Teleport</button>
   <button class="tab" data-r="bb84"><span class="n">10</span>BB84</button>
+  <button class="tab" data-r="circ"><span class="n">11</span>Circuit</button>
   <button class="tab" data-r="map">Map</button>
   <span class="navsep"></span>
   <button class="mini" id="math" title="Math layer — reveal the live equations under every room (Bloch vector, amplitudes, matrices, density matrix). Off by default."><span class="dot"></span>math</button>
@@ -490,6 +492,33 @@
   </div>
   <div id="bb84-out"></div>
   <div class="math mathstrip mono" id="bb84-math"></div>
+</section>
+
+<!-- ROOM 11 — CIRCUIT BUILDER -->
+<section class="room" id="room-circ">
+  <div class="roomsub">Build a real quantum circuit. Arm a gate, then click a cell on a wire to place it; for CNOT click the control cell, then the target (same column). q0 is the top wire. The statevector updates live — measure to sample it, or export OpenQASM.</div>
+  <span class="seclab">gate palette — arm one, then click the circuit</span>
+  <div class="ctl" id="circ-pal">
+    <button class="gate" data-cg="H">H</button>
+    <button class="gate" data-cg="X">X</button>
+    <button class="gate" data-cg="Y">Y</button>
+    <button class="gate" data-cg="Z">Z</button>
+    <button class="gate" data-cg="S">S</button>
+    <button class="gate" data-cg="T">T</button>
+    <button class="gate wide" data-cg="CX">CNOT</button>
+    <button class="act sm" data-cg="erase">erase</button>
+    <span class="sep"></span>
+    <button class="act" id="circ-clear">clear</button>
+  </div>
+  <canvas id="c-circ" style="height:340px"></canvas>
+  <div class="ctl">
+    <button class="act go" id="circ-shots">measure ×200</button>
+    <button class="act" id="circ-bell">Bell preset</button>
+    <button class="act" id="circ-ghz">GHZ preset</button>
+    <button class="act" id="circ-qasm">OpenQASM</button>
+  </div>
+  <div class="read mono" id="circ-read"></div>
+  <div class="math mathstrip mono" id="circ-math"></div>
 </section>
 
 <!-- JOURNEYS -->
@@ -1567,6 +1596,110 @@ document.getElementById('bb84-eve').onclick=e=>{
 };
 
 /* ===================================================================== */
+/* ROOM 11 — CIRCUIT BUILDER                                             */
+/* ===================================================================== */
+const CN=8, CQ=3;
+const CGM={H:M_H,X:M_X,Y:M_Y,Z:M_Z,S:M_S,T:M_T};
+let circ1q={}, circCX=[], circArm='H', circPend=null, circShots=null, circQasmOn=false;
+function circState(){
+  let s=ket(CQ,0);
+  for(let col=0;col<CN;col++){
+    for(let r=0;r<CQ;r++){const gch=circ1q[r+','+col]; if(gch&&CGM[gch]) s=apply1(s,r,CGM[gch]);}
+    for(const c of circCX) if(c.col===col) s=applyCX(s,c.ctrl,c.tgt);
+  }
+  return s;
+}
+function circQASM(){
+  let q='OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q['+CQ+'];\ncreg c['+CQ+'];\n';
+  for(let col=0;col<CN;col++){
+    for(let r=0;r<CQ;r++){const gch=circ1q[r+','+col]; if(gch) q+=gch.toLowerCase()+' q['+r+'];\n';}
+    for(const c of circCX) if(c.col===col) q+='cx q['+c.ctrl+'],q['+c.tgt+'];\n';
+  }
+  return q+'measure q -> c;';
+}
+function circGeom(cv){
+  const xL=36, top=24, rowH=34, cellW=(cv._w-12-xL)/CN;
+  return {xL,top,rowH,cellW};
+}
+function circPlace(row,col){
+  const key=row+','+col; circShots=null;
+  if(circArm==='erase'){ delete circ1q[key]; circCX=circCX.filter(c=>!(c.col===col&&(c.ctrl===row||c.tgt===row))); return; }
+  if(circArm==='CX'){
+    if(!circPend){ circPend={row,col}; return; }
+    if(circPend.col===col && circPend.row!==row){
+      circCX=circCX.filter(c=>c.col!==col);
+      delete circ1q[circPend.row+','+col]; delete circ1q[row+','+col];
+      circCX.push({col,ctrl:circPend.row,tgt:row}); circPend=null;
+    } else circPend={row,col};
+    return;
+  }
+  circCX=circCX.filter(c=>!(c.col===col&&(c.ctrl===row||c.tgt===row)));
+  circ1q[key]=circArm;
+}
+document.querySelectorAll('#circ-pal [data-cg]').forEach(b=>b.onclick=()=>{
+  circArm=b.dataset.cg; circPend=null;
+  document.querySelectorAll('#circ-pal [data-cg]').forEach(x=>x.classList.toggle('armed',x===b));
+});
+document.getElementById('circ-clear').onclick=()=>{circ1q={};circCX=[];circPend=null;circShots=null;tone(196,0.25,0.1);};
+document.getElementById('circ-bell').onclick=()=>{circ1q={'0,0':'H'};circCX=[{col:1,ctrl:0,tgt:1}];circPend=null;circShots=null;linkConcept('cnot');tone(440,0.2,0.1);};
+document.getElementById('circ-ghz').onclick=()=>{circ1q={'0,0':'H'};circCX=[{col:1,ctrl:0,tgt:1},{col:2,ctrl:1,tgt:2}];circPend=null;circShots=null;linkConcept('tensor');tone(523,0.2,0.1);};
+document.getElementById('circ-shots').onclick=()=>{
+  const p=probsOf(circState()), n=200, counts=new Array(p.length).fill(0);
+  for(let k=0;k<n;k++){let r=Math.random(),acc=0,idx=p.length-1;for(let i=0;i<p.length;i++){acc+=p[i];if(r<acc){idx=i;break;}}counts[idx]++;}
+  circShots={counts,n}; tone(392,0.3,0.12);
+};
+document.getElementById('circ-qasm').onclick=()=>{circQasmOn=!circQasmOn;};
+document.getElementById('c-circ').addEventListener('click',e=>{
+  const cv=document.getElementById('c-circ'); if(!cv._w) return;
+  const rect=cv.getBoundingClientRect(), mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  const G=circGeom(cv);
+  if(my > G.top+CQ*G.rowH+6) return;          // below the circuit = statevector area
+  const col=Math.floor((mx-G.xL)/G.cellW); if(col<0||col>=CN) return;
+  const row=clamp(Math.round((my-G.top)/G.rowH),0,CQ-1);
+  circPlace(row,col); linkConcept('circuitmodel');
+});
+function renderCirc(dt){
+  const cv=document.getElementById('c-circ'),g=cv._g,W=cv._w,H=cv._h;
+  g.clearRect(0,0,W,H);
+  const G=circGeom(cv), gx=col=>G.xL+(col+0.5)*G.cellW, gy=r=>G.top+r*G.rowH;
+  for(let r=0;r<CQ;r++){
+    g.strokeStyle='#2a3150';g.lineWidth=1.4;g.beginPath();g.moveTo(G.xL,gy(r));g.lineTo(W-10,gy(r));g.stroke();
+    g.fillStyle='#9aa2bd';g.font='12px monospace';g.textAlign='left';g.textBaseline='middle';g.fillText('q'+r,8,gy(r));
+  }
+  for(const c of circCX){
+    const x=gx(c.col),yc=gy(c.ctrl),yt=gy(c.tgt);
+    g.strokeStyle='#ffcd6a';g.lineWidth=2;g.beginPath();g.moveTo(x,yc);g.lineTo(x,yt);g.stroke();
+    g.fillStyle='#ffcd6a';g.beginPath();g.arc(x,yc,5,0,TAU);g.fill();
+    g.beginPath();g.arc(x,yt,9,0,TAU);g.stroke();
+    g.beginPath();g.moveTo(x-9,yt);g.lineTo(x+9,yt);g.moveTo(x,yt-9);g.lineTo(x,yt+9);g.stroke();
+  }
+  for(const key in circ1q){
+    const p=key.split(',').map(Number), x=gx(p[1]), y=gy(p[0]);
+    g.fillStyle='#172132';g.strokeStyle='#3c5c78';g.lineWidth=1.4;
+    g.fillRect(x-13,y-13,26,26);g.strokeRect(x-13,y-13,26,26);
+    g.fillStyle='#7fe4ff';g.font='15px Georgia,serif';g.textAlign='center';g.textBaseline='middle';g.fillText(circ1q[key],x,y+1);
+  }
+  if(circArm==='CX'&&circPend){const x=gx(circPend.col),y=gy(circPend.row);
+    g.strokeStyle='#ffcd6a';g.setLineDash([3,3]);g.lineWidth=1.5;g.beginPath();g.arc(x,y,12,0,TAU);g.stroke();g.setLineDash([]);}
+  const s=circState();
+  const svTop=G.top+CQ*G.rowH+26, svH=H-svTop-22;
+  g.fillStyle='#8b93b0';g.font='10px monospace';g.textAlign='left';g.textBaseline='alphabetic';
+  g.fillText('statevector probabilities'+(circShots?'   white = 200-shot sample':''),G.xL,svTop-8);
+  ampBars(g,s,CQ,G.xL,svTop,W-G.xL-12,svH);
+  if(circShots){
+    const N=s.length,gap=Math.max(2,(W-G.xL-12)*0.012),bw=((W-G.xL-12)-gap*(N-1))/N;
+    for(let i=0;i<N;i++){const frac=circShots.counts[i]/circShots.n,bx=G.xL+i*(bw+gap),yy=svTop+svH-svH*Math.min(1,frac);
+      g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.moveTo(bx,yy);g.lineTo(bx+bw,yy);g.stroke();}
+  }
+  const arm = circArm==='CX' ? (circPend?'CNOT — now click the target (same column)':'CNOT — click the control cell')
+            : circArm==='erase' ? 'erase — click a gate to remove it' : 'gate '+circArm+' — click a cell to place';
+  document.getElementById('circ-read').innerHTML = circQasmOn
+    ? '<b>OpenQASM</b><br>'+circQASM().replace(/\n/g,'<br>')
+    : 'armed: '+arm;
+  document.getElementById('circ-math').innerHTML=`<span class="lbl">state</span>|ψ⟩ = ${stateStr(s,CQ)}`;
+}
+
+/* ===================================================================== */
 /* ROOM MAP — the concept graph                                          */
 /* ===================================================================== */
 const MAP_EDGES=[
@@ -1596,7 +1729,8 @@ const MAP_EDGES=[
   ['densitymatrix','mixedstate'],['densitymatrix','sphere'],['densitymatrix','decoherence'],
   ['chsh','bell'],['chsh','nonlocality'],['chsh','entanglement'],['chsh','measurement'],
   ['teleport','bell'],['teleport','measurement'],['bb84','nocloning'],['bb84','measurement'],
-  ['bb84','information'],['bb84','superposition']
+  ['bb84','information'],['bb84','superposition'],
+  ['circuitmodel','gates'],['circuitmodel','cnot'],['circuitmodel','tensor'],['circuitmodel','advantage'],['circuitmodel','unitary']
 ];
 const MAP_LABEL={
   sphere:'sphere',axes:'X·Y·Z axes',superposition:'superposition',phase:'phase',poles:'poles',gates:'gates',
@@ -1608,10 +1742,10 @@ const MAP_LABEL={
   zeno:'Zeno effect',cat:'cat',
   unitary:'unitary',hamiltonian:'evolution',tensor:'joint space',cnot:'CNOT',entropy:'ent. entropy',
   grover:'Grover',deutsch:'Deutsch–Jozsa',superdense:'superdense',densitymatrix:'density ρ',chsh:'CHSH',
-  bb84:'BB84'
+  bb84:'BB84',circuitmodel:'circuit model'
 };
 const ROOM_COL={qubit:'#7fe4ff',interf:'#ffcd6a',entang:'#b79bf0',measure:'#7fd9a0',
-  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a',bell:'#c08ae0',tele:'#7fd9a0',bb84:'#7fe4ff'};
+  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a',bell:'#c08ae0',tele:'#7fd9a0',bb84:'#7fe4ff',circ:'#ffcd6a'};
 let mapNodes=null, mapDrag=null;
 function initMap(){
   const conceptRoom={};
@@ -1716,6 +1850,7 @@ const ROOMS={
   bell:{cv:'c-bell',render:renderBell},
   tele:{cv:'c-tele',render:renderTele},
   bb84:{},
+  circ:{cv:'c-circ',render:renderCirc},
   journeys:{},
   map:{cv:'c-map',render:renderMap}
 };
@@ -2314,6 +2449,14 @@ const CONCEPTS={
     ['Why does nature stop exactly at 2√2, and not further? That is an open foundational question.',
      'Principles like "information causality" and "macroscopic locality" recover the 2√2 limit from scratch — but a single agreed reason the universe is this non-local and no more does not yet exist.']
   ]},
+  circuitmodel:{title:'The circuit model',layers:[
+    ['A quantum program is a circuit: each wire is a qubit, each box is a gate, and time runs left to right.'],
+    ['Every wire starts at |0⟩. Gates act in order along the wires, and at the very end you measure.'],
+    ['Unlike classical logic, the wires can be in superposition and entangled across the whole register at once — the state is one object spanning all the qubits.'],
+    ['A small set of gate types is universal: any single-qubit rotations plus the two-qubit CNOT can express any computation at all.'],
+    ['The catch is the throat at the end: during the run you hold 2ⁿ amplitudes, but a measurement returns only n bits.',
+     'The whole craft of quantum algorithm design is arranging interference so the few bits you finally read out are the answer you wanted.']
+  ]},
   bb84:{title:'BB84 quantum key distribution',layers:[
     ['Two strangers want one shared secret — a key — over a line everyone can listen to.'],
     ['Alice sends single qubits, each encoded in one of two randomly chosen bases: rectilinear (+) or diagonal (×).'],
@@ -2358,6 +2501,8 @@ const ROOM_CHIPS={
     ['superdense','superdense coding'],['nocloning','no-cloning']],
   bb84:[['bb84','BB84 / QKD'],['nocloning','no-cloning'],['measurement','measurement'],
     ['information','quantum information']],
+  circ:[['circuitmodel','the circuit model'],['cnot','CNOT'],['tensor','the joint space'],
+    ['unitary','gates as rotations'],['advantage','the advantage']],
   journeys:[],
   map:[]
 };
@@ -2372,6 +2517,7 @@ const TRYS={
   bell:'press snap to optimal and watch S pass 2 and reach 2.83 — you just ruled out every locally pre-determined theory of the world.',
   tele:'pick |+i⟩ and step through — Bob’s qubit stays blank until the 2 classical bits arrive, then snaps to ψ. Information never outran light.',
   bb84:'turn Eve on and hit new run a few times — the sifted key fills with ~25% errors, the unmistakable fingerprint of an eavesdropper.',
+  circ:'press “Bell preset”, then “measure ×200” — the white ticks (sampled) land on |00⟩ and |11⟩ only, never |01⟩ or |10⟩. Then hit OpenQASM.',
   journeys:'pick a path below and follow the steps — each one ends in a small "aha".',
   map:'drag a concept to pull the whole web around. The dots you have opened glow — click any dot to read it.'
 };
@@ -2453,7 +2599,7 @@ function buildContext(){
   const roomName={qubit:'The Qubit',interf:'Interference',
     entang:'Entanglement',measure:'Measurement',
     gates:'Gate Lab',two:'Two Qubits',algo:'Algorithms',bell:'Bell Test',
-    tele:'Teleportation',bb84:'BB84',journeys:'Journeys',map:'Concept Map'}[active];
+    tele:'Teleportation',bb84:'BB84',circ:'Circuit Builder',journeys:'Journeys',map:'Concept Map'}[active];
   const p=['Room: '+roomName];
   if(focus){
     const c=CONCEPTS[focus];
@@ -2485,6 +2631,8 @@ function buildContext(){
     p.push(`Teleportation of ${tpMsg}, stage ${tpStage}/4${tpBits[0]!=null?`, classical bits m=${tpBits[0]}${tpBits[1]}`:''}`);
   } else if(active==='bb84'){
     p.push(`BB84 with Eve ${bb84Eve?'on':'off'}`);
+  } else if(active==='circ'){
+    p.push(`Circuit builder: ${Object.keys(circ1q).length} single-qubit gates + ${circCX.length} CNOTs; state ${stateStr(circState(),CQ)}`);
   }
   const seen=Object.keys(progress);
   if(seen.length) p.push('explored so far — '+
@@ -2552,6 +2700,12 @@ const JOURNEYS=[
     {room:'gates',text:'Press X. The whole sphere flips top-to-bottom — X is the quantum NOT, and it is exactly a π rotation about the x-axis.',goal:'apply X (flip to |1⟩)',check:()=>gV.z<-0.4},
     {room:'gates',text:'Press “reset”, then the “H·Z·H = X” identity button. Three separate turns compose into the single flip you just did.',goal:'run the H·Z·H identity',check:()=>gSeq.length>=3},
     {room:'gates',text:'Turn on “math” in the top bar and read “U total” — the matrix product is the proof the route equals X. Open “gates as rotations” to go deeper.',goal:'open the unitary concept',check:()=>focus==='unitary'}
+  ]},
+  {id:'quantum-crypto',title:'How quantum crypto works',blurb:'BB84 — share an unbreakable key over an open line, and catch an eavesdropper red-handed.',steps:[
+    {room:'bb84',text:'Make sure Eve is OFF (top-right), then press “new run”. Look at the matching-basis columns — Alice’s and Bob’s kept bits agree perfectly. That shared string is the key.'},
+    {room:'bb84',text:'Now turn Eve ON. She intercepts every qubit, measures it, and resends — the only way to learn anything.',goal:'switch Eve on',check:()=>bb84Eve},
+    {room:'bb84',text:'Press “new run” a few times. Because she can’t copy a qubit and doesn’t know the basis, errors now appear in the sifted key — hovering near 25%. That is her fingerprint.'},
+    {room:'bb84',text:'Open “BB84 quantum key distribution” below to see why this is secure against any eavesdropper, however powerful.',goal:'open the BB84 concept',check:()=>focus==='bb84'}
   ]}
 ];
 let activeJourney=null, journeyStep=0, stepDone=false;
@@ -2620,6 +2774,7 @@ window.addEventListener('load',()=>{
   for(const k in ROOMS){const id=ROOMS[k].cv; if(id){const c=document.getElementById(id); if(c) fit(c);}}
   buildJourneyList();
   bb84Run();
+  const _h=document.querySelector('#circ-pal [data-cg="H"]'); if(_h) _h.classList.add('armed');
   buildChips('qubit');renderDrawer();
   document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS.qubit;
   requestAnimationFrame(frame);
