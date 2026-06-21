@@ -177,6 +177,17 @@
   .jstart{background:#1c2647;color:var(--cy);border:1px solid #38507a;border-radius:9px;
     padding:9px 16px;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap}
   .jstart:hover{background:#243057}
+  /* bb84 table */
+  .bbt{width:100%;border-collapse:collapse;font-family:"SF Mono",ui-monospace,monospace;
+    font-size:12px;margin-top:6px;table-layout:fixed}
+  .bbt th,.bbt td{text-align:center;padding:4px 2px;border:1px solid #1f2640}
+  .bbt th.rl{text-align:right;color:var(--mut);width:96px;padding-right:8px;font-weight:400;border:none}
+  .bbt td.kept{background:#16243a}
+  .bbt .ba{color:var(--cy)} .bbt .bb{color:var(--am)} .bbt .be{color:#e08ad0}
+  .bbt .match{color:#7fd9a0} .bbt .miss{color:var(--faint)}
+  .bbsum{margin-top:12px;font-size:13px;color:#cdd3e6;line-height:1.6}
+  .bbsum .key{font-family:"SF Mono",monospace;color:var(--cy);letter-spacing:2px}
+  .bbsum b.ok{color:#7fd9a0} .bbsum b.bad{color:#ff7a7a}
   .try{margin:2px 0 12px;font-size:12.5px;color:var(--cy);
     background:#101a2c;border:1px solid #23344e;border-radius:9px;padding:8px 13px}
   .try b{color:var(--mut);font-weight:500}
@@ -236,6 +247,8 @@
   <button class="tab" data-r="two"><span class="n">6</span>Two Qubits</button>
   <button class="tab" data-r="algo"><span class="n">7</span>Algorithms</button>
   <button class="tab" data-r="bell"><span class="n">8</span>Bell Test</button>
+  <button class="tab" data-r="tele"><span class="n">9</span>Teleport</button>
+  <button class="tab" data-r="bb84"><span class="n">10</span>BB84</button>
   <button class="tab" data-r="map">Map</button>
   <span class="navsep"></span>
   <button class="mini" id="math" title="Math layer — reveal the live equations under every room (Bloch vector, amplitudes, matrices, density matrix). Off by default."><span class="dot"></span>math</button>
@@ -448,6 +461,37 @@
   <div class="math mathstrip mono" id="bell-math"></div>
 </section>
 
+<!-- ROOM 9 — TELEPORTATION -->
+<section class="room" id="room-tele">
+  <div class="roomsub">Move an unknown qubit from Alice to Bob without sending the qubit — using one shared Bell pair and two classical bits. The original is destroyed in the process (no-cloning), and the two bits travel no faster than light.</div>
+  <canvas id="c-tele" style="height:300px"></canvas>
+  <span class="seclab">the message qubit ψ (pick an unknown state for Alice to send)</span>
+  <div class="ctl" id="tele-msg">
+    <button class="act sm" data-msg="|0⟩">|0&rang;</button>
+    <button class="act sm" data-msg="|1⟩">|1&rang;</button>
+    <button class="act sm" data-msg="|+⟩">|+&rang;</button>
+    <button class="act sm" data-msg="|−⟩">|&minus;&rang;</button>
+    <button class="act sm go" data-msg="|+i⟩">|+i&rang;</button>
+  </div>
+  <div class="ctl">
+    <button class="act go" id="tele-step">step &rarr;</button>
+    <button class="act" id="tele-reset">reset</button>
+  </div>
+  <div class="read mono" id="tele-read"></div>
+  <div class="math mathstrip mono" id="tele-math"></div>
+</section>
+
+<!-- ROOM 10 — BB84 -->
+<section class="room" id="room-bb84">
+  <div class="roomsub">BB84 — agree on a secret key over a fully public channel. Measuring an unknown qubit in the wrong basis scrambles it, so any eavesdropper leaves statistical fingerprints. Toggle Eve and watch errors appear in the shared key.</div>
+  <div class="ctl">
+    <button class="act go" id="bb84-run">new run</button>
+    <button class="act" id="bb84-eve" title="Insert an eavesdropper who intercepts, measures, and resends every qubit.">Eve: off</button>
+  </div>
+  <div id="bb84-out"></div>
+  <div class="math mathstrip mono" id="bb84-math"></div>
+</section>
+
 <!-- JOURNEYS -->
 <section class="room" id="room-journeys">
   <div class="roomsub">Guided paths through the rooms. Each is a few steps with a checkpoint — do the thing, watch it click, move on. New here? Start with the first.</div>
@@ -555,6 +599,24 @@ function applyCX(state,c,t){
 }
 const probsOf=s=>s.map(cabs2);
 function binStr(i,n){let s='';for(let b=n-1;b>=0;b--)s+=(i>>b)&1;return s;}
+/* reduced single-qubit Bloch vector of qubit q within a multi-qubit state */
+function blochOf(state,q){
+  const s=1<<q; let r00=0,r11=0,r01=C(0,0);
+  for(let i=0;i<state.length;i++){
+    if(i&s){ r11+=cabs2(state[i]); }
+    else { r00+=cabs2(state[i]); r01=cadd(r01,cmul(state[i],cconj(state[i|s]))); }
+  }
+  return {x:2*r01.re, y:-2*r01.im, z:r00-r11};
+}
+/* measure qubit q in the Z basis: returns {outcome, state} (collapsed, renormalized) */
+function measureQubit(state,q){
+  const s=1<<q; let p1=0;
+  for(let i=0;i<state.length;i++) if(i&s) p1+=cabs2(state[i]);
+  const outcome = Math.random()<p1 ? 1 : 0;
+  const norm = Math.sqrt(outcome?p1:(1-p1)) || 1;
+  const out = state.map((x,i)=> (((i&s)?1:0)===outcome) ? cscale(x,1/norm) : C(0,0));
+  return {outcome, state:out};
+}
 /* canonical single-qubit gate matrices */
 const M_X=[[C(0),C(1)],[C(1),C(0)]];
 const M_Y=[[C(0),C(0,-1)],[C(0,1),C(0)]];
@@ -1384,6 +1446,127 @@ function renderBell(dt){
 }
 
 /* ===================================================================== */
+/* ROOM 9 — TELEPORTATION                                                */
+/* ===================================================================== */
+const TP_STATES={
+  '|0⟩':{a:C(1),b:C(0)}, '|1⟩':{a:C(0),b:C(1)},
+  '|+⟩':{a:C(Math.SQRT1_2),b:C(Math.SQRT1_2)},
+  '|−⟩':{a:C(Math.SQRT1_2),b:C(-Math.SQRT1_2)},
+  '|+i⟩':{a:C(Math.SQRT1_2),b:C(0,Math.SQRT1_2)}
+};
+let tpMsg='|+i⟩', tpState=null, tpStage=0, tpBits=[null,null], tpInputVec={x:0,y:0,z:1};
+function tpInit(){
+  const m=TP_STATES[tpMsg];
+  tpState=Array.from({length:8},()=>C(0,0));
+  tpState[0]=m.a; tpState[1]=m.b;            // q0=message, q1=Alice, q2=Bob
+  tpInputVec=blochOf(tpState,0); tpStage=0; tpBits=[null,null];
+}
+function tpStepFn(){
+  if(tpStage===0){ tpState=applyCX(apply1(tpState,1,M_H),1,2); tpStage=1; tone(392,0.2,0.1); }
+  else if(tpStage===1){ tpState=apply1(applyCX(tpState,0,1),0,M_H); tpStage=2; tone(440,0.2,0.1); }
+  else if(tpStage===2){
+    let r=measureQubit(tpState,1); const m1=r.outcome;
+    r=measureQubit(r.state,0); const m0=r.outcome;
+    tpState=r.state; tpBits=[m0,m1]; tpStage=3; tone(523,0.3,0.13);
+  } else if(tpStage===3){
+    if(tpBits[1]) tpState=apply1(tpState,2,M_X);
+    if(tpBits[0]) tpState=apply1(tpState,2,M_Z);
+    tpStage=4; tone(659,0.32,0.14);
+  }
+}
+document.querySelectorAll('#tele-msg [data-msg]').forEach(b=>b.onclick=()=>{
+  tpMsg=b.dataset.msg;
+  document.querySelectorAll('#tele-msg [data-msg]').forEach(x=>x.classList.toggle('go',x===b));
+  tpInit(); linkConcept('teleport');
+});
+document.getElementById('tele-step').onclick=()=>{ if(tpStage<4) tpStepFn(); };
+document.getElementById('tele-reset').onclick=()=>{ tpInit(); tone(196,0.3,0.1); };
+function renderTele(dt){
+  const cv=document.getElementById('c-tele'),g=cv._g,W=cv._w,H=cv._h;
+  if(!tpState) tpInit();
+  g.clearRect(0,0,W,H);
+  const R=Math.min(W*0.30,H*0.40), yC=H*0.42;
+  const outVec=blochOf(tpState,2);
+  blochSphere(g,W*0.27,yC,R,{vec:tpInputVec,col:'#7fe4ff'});
+  blochSphere(g,W*0.73,yC,R,{vec:outVec,col:'#7fd9a0'});
+  g.fillStyle='#9aa2bd';g.font='12px monospace';g.textAlign='center';
+  g.fillText('Alice — message '+tpMsg, W*0.27, yC+R+24);
+  g.fillText('Bob — received', W*0.73, yC+R+24);
+  if(tpStage>=1){
+    g.strokeStyle=tpStage>=3?'rgba(127,217,160,0.55)':'rgba(183,155,240,0.5)';
+    g.lineWidth=2;g.setLineDash(tpStage>=2?[2,4]:[]);
+    g.beginPath();g.moveTo(W*0.27+R+6,yC);g.lineTo(W*0.73-R-6,yC);g.stroke();g.setLineDash([]);
+    g.fillStyle=tpStage>=2?'#ffcd6a':'#b79bf0';g.font='10px monospace';
+    g.fillText(tpStage>=2?(tpBits[0]!=null?('classical bits  m = '+tpBits[0]+tpBits[1]):'measuring…'):'entangled pair',W/2,yC-8);
+  }
+  const bitTxt=(tpBits[0]!=null)?(tpBits[0]+''+tpBits[1]):'--';
+  const stages=[
+    'Alice holds an unknown ψ (left); Bob (right) is blank. Step: share a Bell pair.',
+    'A Bell pair now links the two distant qubits. Step: Alice mixes her message into it.',
+    'Message is entangled with the pair. Step: Alice measures her two qubits.',
+    'Alice got 2 classical bits (m='+bitTxt+') and sends them to Bob. Step: Bob applies the correction.',
+    'Done — Bob’s qubit now equals ψ. Alice’s copy is gone (no-cloning), and the 2 bits travelled no faster than light.'
+  ];
+  document.getElementById('tele-read').innerHTML=`<b>stage ${tpStage}/4</b> — ${stages[tpStage]}`;
+  document.getElementById('tele-math').innerHTML=
+    `<span class="lbl">protocol</span>Bell(q1,q2) · CNOT(q0→q1) · H(q0) · measure(q0,q1)=m · Bob applies Z<sup>m0</sup>X<sup>m1</sup><br>`+
+    `<span class="lbl">Bob r</span>(${fmt(outVec.x,2)}, ${fmt(outVec.y,2)}, ${fmt(outVec.z,2)})   ·   input ψ = (${fmt(tpInputVec.x,2)}, ${fmt(tpInputVec.y,2)}, ${fmt(tpInputVec.z,2)})`;
+}
+
+/* ===================================================================== */
+/* ROOM 10 — BB84 QUANTUM KEY DISTRIBUTION                               */
+/* ===================================================================== */
+let bb84Eve=false, bb84Data=null;
+const BSYM=b=>b?'×':'+';   // basis 0 = rectilinear (+), 1 = diagonal (×)
+function bb84Run(){
+  const N=12, rows=[];
+  for(let i=0;i<N;i++){
+    const aBit=Math.random()<0.5?1:0, aBasis=Math.random()<0.5?1:0;
+    let cBit=aBit, cBasis=aBasis, eBasis=null, eBit=null;
+    if(bb84Eve){
+      eBasis=Math.random()<0.5?1:0;
+      eBit=(eBasis===aBasis)?aBit:(Math.random()<0.5?1:0);
+      cBit=eBit; cBasis=eBasis;            // Eve resends in her basis
+    }
+    const bBasis=Math.random()<0.5?1:0;
+    const bBit=(bBasis===cBasis)?cBit:(Math.random()<0.5?1:0);
+    rows.push({aBit,aBasis,eBasis,eBit,bBasis,bBit,kept:aBasis===bBasis});
+  }
+  bb84Data=rows; renderBB84();
+}
+function renderBB84(){
+  const rows=bb84Data, out=document.getElementById('bb84-out'); if(!out) return;
+  if(!rows){ out.innerHTML=''; return; }
+  const cell=(v,cls)=>`<td class="${cls||''}">${v}</td>`;
+  const rowHTML=(label,fn)=>{let h='<tr><th class="rl">'+label+'</th>';rows.forEach(r=>h+=fn(r));return h+'</tr>';};
+  let html='<table class="bbt">';
+  html+=rowHTML('Alice basis',r=>cell(BSYM(r.aBasis),'ba'+(r.kept?' kept':'')));
+  html+=rowHTML('Alice bit',  r=>cell(r.aBit,'ba'+(r.kept?' kept':'')));
+  if(bb84Eve) html+=rowHTML('Eve basis',r=>cell(BSYM(r.eBasis),'be'));
+  html+=rowHTML('Bob basis',  r=>cell(BSYM(r.bBasis),'bb'+(r.kept?' kept':'')));
+  html+=rowHTML('Bob bit',    r=>cell(r.bBit,'bb'+(r.kept?' kept':'')));
+  html+=rowHTML('match?',     r=>cell(r.kept?'✓':'·', r.kept?'match':'miss'));
+  html+='</table>';
+  out.innerHTML=html;
+  const sift=rows.filter(r=>r.kept), errs=sift.filter(r=>r.aBit!==r.bBit).length;
+  const qber=sift.length?errs/sift.length:0, keyA=sift.map(r=>r.aBit).join('');
+  const verdict = errs>0
+    ? `<b class="bad">QBER ${Math.round(qber*100)}% — the sifted keys disagree.</b> Someone measured the qubits mid-flight. Discard this key.`
+    : `<b class="ok">QBER 0% — sifted keys agree.</b> No eavesdropping detected; keep it.`;
+  out.insertAdjacentHTML('beforeend',
+    `<div class="bbsum">sifted key: <span class="key">${keyA||'—'}</span><br>`+
+    `kept ${sift.length} of ${rows.length} · errors ${errs} · ${verdict}</div>`);
+  document.getElementById('bb84-math').innerHTML=
+    `<span class="lbl">sift</span>publicly compare bases (never bits); keep only where they matched<br>`+
+    `<span class="lbl">Eve</span>no-cloning forces intercept-resend → ≈25% error in the sifted key — the security signal`;
+}
+document.getElementById('bb84-run').onclick=()=>{ bb84Run(); linkConcept('bb84'); };
+document.getElementById('bb84-eve').onclick=e=>{
+  bb84Eve=!bb84Eve; e.target.textContent='Eve: '+(bb84Eve?'on':'off');
+  e.target.classList.toggle('go',bb84Eve); bb84Run();
+};
+
+/* ===================================================================== */
 /* ROOM MAP — the concept graph                                          */
 /* ===================================================================== */
 const MAP_EDGES=[
@@ -1411,7 +1594,9 @@ const MAP_EDGES=[
   ['advantage','grover'],['grover','amplitude'],['grover','interference'],['deutsch','advantage'],
   ['deutsch','interference'],['superdense','teleport'],['superdense','information'],['superdense','entanglement'],
   ['densitymatrix','mixedstate'],['densitymatrix','sphere'],['densitymatrix','decoherence'],
-  ['chsh','bell'],['chsh','nonlocality'],['chsh','entanglement'],['chsh','measurement']
+  ['chsh','bell'],['chsh','nonlocality'],['chsh','entanglement'],['chsh','measurement'],
+  ['teleport','bell'],['teleport','measurement'],['bb84','nocloning'],['bb84','measurement'],
+  ['bb84','information'],['bb84','superposition']
 ];
 const MAP_LABEL={
   sphere:'sphere',axes:'X·Y·Z axes',superposition:'superposition',phase:'phase',poles:'poles',gates:'gates',
@@ -1422,10 +1607,11 @@ const MAP_LABEL={
   bornrule:'Born rule',collapse:'collapse',measproblem:'measure problem',observer:'observer',
   zeno:'Zeno effect',cat:'cat',
   unitary:'unitary',hamiltonian:'evolution',tensor:'joint space',cnot:'CNOT',entropy:'ent. entropy',
-  grover:'Grover',deutsch:'Deutsch–Jozsa',superdense:'superdense',densitymatrix:'density ρ',chsh:'CHSH'
+  grover:'Grover',deutsch:'Deutsch–Jozsa',superdense:'superdense',densitymatrix:'density ρ',chsh:'CHSH',
+  bb84:'BB84'
 };
 const ROOM_COL={qubit:'#7fe4ff',interf:'#ffcd6a',entang:'#b79bf0',measure:'#7fd9a0',
-  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a',bell:'#c08ae0'};
+  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a',bell:'#c08ae0',tele:'#7fd9a0',bb84:'#7fe4ff'};
 let mapNodes=null, mapDrag=null;
 function initMap(){
   const conceptRoom={};
@@ -1528,6 +1714,8 @@ const ROOMS={
   two:{cv:'c-two',render:renderTwo},
   algo:{cv:'c-algo',render:renderAlgo},
   bell:{cv:'c-bell',render:renderBell},
+  tele:{cv:'c-tele',render:renderTele},
+  bb84:{},
   journeys:{},
   map:{cv:'c-map',render:renderMap}
 };
@@ -2126,6 +2314,16 @@ const CONCEPTS={
     ['Why does nature stop exactly at 2√2, and not further? That is an open foundational question.',
      'Principles like "information causality" and "macroscopic locality" recover the 2√2 limit from scratch — but a single agreed reason the universe is this non-local and no more does not yet exist.']
   ]},
+  bb84:{title:'BB84 quantum key distribution',layers:[
+    ['Two strangers want one shared secret — a key — over a line everyone can listen to.'],
+    ['Alice sends single qubits, each encoded in one of two randomly chosen bases: rectilinear (+) or diagonal (×).'],
+    ['Bob measures each in his own randomly chosen basis. About half the time he happens to pick the same one she did.'],
+    ['Afterwards they announce only which bases they used — never the bits — and keep just the matching positions. That is the sifted key.'],
+    ['An eavesdropper can’t copy a qubit (no-cloning) and doesn’t know the basis, so to learn a bit she must measure — and measuring in the wrong basis scrambles it.'],
+    ['Intercept-and-resend injects about a 25% error rate into the sifted key. Alice and Bob sacrifice a random sample of their key to estimate that rate.'],
+    ['Low error → no eavesdropper; they keep the rest and distil it into a shorter, provably-private key. High error → discard everything.',
+     'The security rests on physics — the impossibility of cloning and the disturbance of measurement — not on assuming the attacker is weak or slow.']
+  ]},
   densitymatrix:{title:'The density matrix',layers:[
     ['A pure state is a single arrow on the sphere. But what if you are not sure which state you actually hold?'],
     ['Then you carry a probability mix of arrows — and no single arrow can describe you anymore.'],
@@ -2156,6 +2354,10 @@ const ROOM_CHIPS={
     ['superdense','superdense coding'],['teleport','teleportation'],['information','quantum information']],
   bell:[['chsh','Bell’s inequality'],['bell','Bell’s theorem'],['nonlocality','spooky action'],
     ['entanglement','entanglement']],
+  tele:[['teleport','teleportation'],['entanglement','entanglement'],['bell','Bell states'],
+    ['superdense','superdense coding'],['nocloning','no-cloning']],
+  bb84:[['bb84','BB84 / QKD'],['nocloning','no-cloning'],['measurement','measurement'],
+    ['information','quantum information']],
   journeys:[],
   map:[]
 };
@@ -2168,6 +2370,8 @@ const TRYS={
   two:'press Bell, then read S(ρ_A) = 1 bit — each qubit has lost its own state entirely into the pair.',
   algo:'pick a marked item, then step Grover. Watch one bar climb and the rest drain — and stop at step 2, the peak.',
   bell:'press snap to optimal and watch S pass 2 and reach 2.83 — you just ruled out every locally pre-determined theory of the world.',
+  tele:'pick |+i⟩ and step through — Bob’s qubit stays blank until the 2 classical bits arrive, then snaps to ψ. Information never outran light.',
+  bb84:'turn Eve on and hit new run a few times — the sifted key fills with ~25% errors, the unmistakable fingerprint of an eavesdropper.',
   journeys:'pick a path below and follow the steps — each one ends in a small "aha".',
   map:'drag a concept to pull the whole web around. The dots you have opened glow — click any dot to read it.'
 };
@@ -2249,7 +2453,7 @@ function buildContext(){
   const roomName={qubit:'The Qubit',interf:'Interference',
     entang:'Entanglement',measure:'Measurement',
     gates:'Gate Lab',two:'Two Qubits',algo:'Algorithms',bell:'Bell Test',
-    journeys:'Journeys',map:'Concept Map'}[active];
+    tele:'Teleportation',bb84:'BB84',journeys:'Journeys',map:'Concept Map'}[active];
   const p=['Room: '+roomName];
   if(focus){
     const c=CONCEPTS[focus];
@@ -2277,6 +2481,10 @@ function buildContext(){
     const {a,a2,b,b2}=bellGet();
     const S=corrE(a,b)-corrE(a,b2)+corrE(a2,b)+corrE(a2,b2);
     p.push(`Bell/CHSH at a=${a}°,a′=${a2}°,b=${b}°,b′=${b2}°; S=${fmt(S,3)} (classical ≤2, Tsirelson 2√2)`);
+  } else if(active==='tele'){
+    p.push(`Teleportation of ${tpMsg}, stage ${tpStage}/4${tpBits[0]!=null?`, classical bits m=${tpBits[0]}${tpBits[1]}`:''}`);
+  } else if(active==='bb84'){
+    p.push(`BB84 with Eve ${bb84Eve?'on':'off'}`);
   }
   const seen=Object.keys(progress);
   if(seen.length) p.push('explored so far — '+
@@ -2411,6 +2619,7 @@ window.addEventListener('load',()=>{
   loadProgress();
   for(const k in ROOMS){const id=ROOMS[k].cv; if(id){const c=document.getElementById(id); if(c) fit(c);}}
   buildJourneyList();
+  bb84Run();
   buildChips('qubit');renderDrawer();
   document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS.qubit;
   requestAnimationFrame(frame);
