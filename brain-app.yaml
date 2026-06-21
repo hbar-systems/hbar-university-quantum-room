@@ -54,8 +54,8 @@
 dialect: brain-app/v1
 id: quantum-room
 name: The Quantum Room
-version: 0.6.1
-description: An interactive instrument for understanding quantum mechanics — seven rooms (qubit, interference, entanglement, measurement, gate lab, two qubits, algorithms), a concept map, and layered read-further explanations from plain language down to the real mathematics.
+version: 0.6.2
+description: Learn quantum mechanics by playing — seven rooms (qubit, gates, two-qubit, algorithms, and more), a concept map, and layered explanations from plain language down to the real mathematics.
 license: AGPL-3.0
 
 author:
