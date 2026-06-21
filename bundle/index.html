@@ -207,6 +207,7 @@
   <button class="tab" data-r="gates"><span class="n">5</span>Gate Lab</button>
   <button class="tab" data-r="two"><span class="n">6</span>Two Qubits</button>
   <button class="tab" data-r="algo"><span class="n">7</span>Algorithms</button>
+  <button class="tab" data-r="bell"><span class="n">8</span>Bell Test</button>
   <button class="tab" data-r="map">Map</button>
   <span class="navsep"></span>
   <button class="mini" id="math" title="Math layer — reveal the live equations under every room (Bloch vector, amplitudes, matrices, density matrix). Off by default."><span class="dot"></span>math</button>
@@ -381,6 +382,28 @@
   <div class="ctl" id="a-sub"></div>
   <div class="read mono" id="a-read"></div>
   <div class="math mathstrip mono" id="a-math"></div>
+</section>
+
+<!-- ROOM 8 — BELL TEST -->
+<section class="room" id="room-bell">
+  <div class="roomsub">Two entangled qubits, measured far apart. Turn the four analyzer angles and watch the combined correlation S climb past <b>2</b> — the hard ceiling for any world whose particles carry pre-set answers. Quantum reaches <b>2√2 ≈ 2.83</b>. You can prove the world is non-local with these sliders.</div>
+  <canvas id="c-bell" style="height:330px"></canvas>
+  <span class="seclab">Alice's two analyzer angles</span>
+  <label class="fld">a &mdash; <span class="v mono" id="bell-a-v"></span></label>
+  <input type="range" id="bell-a" min="0" max="360" value="0" title="Alice's first measurement direction (degrees in the X–Z plane).">
+  <label class="fld">a′ &mdash; <span class="v mono" id="bell-a2-v"></span></label>
+  <input type="range" id="bell-a2" min="0" max="360" value="90" title="Alice's second measurement direction.">
+  <span class="seclab">Bob's two analyzer angles</span>
+  <label class="fld">b &mdash; <span class="v mono" id="bell-b-v"></span></label>
+  <input type="range" id="bell-b" min="0" max="360" value="45" title="Bob's first measurement direction.">
+  <label class="fld">b′ &mdash; <span class="v mono" id="bell-b2-v"></span></label>
+  <input type="range" id="bell-b2" min="0" max="360" value="135" title="Bob's second measurement direction.">
+  <div class="ctl">
+    <button class="act go" id="bell-opt" title="Snap to the angles that maximize S — 0°, 90° / 45°, 135° — reaching the Tsirelson bound 2√2.">snap to optimal</button>
+    <button class="act" id="bell-aligned" title="Align all analyzers — S sits at the classical boundary of 2.">aligned</button>
+  </div>
+  <div class="read mono" id="bell-read"></div>
+  <div class="math mathstrip mono" id="bell-math"></div>
 </section>
 
 <!-- ROOM MAP -->
@@ -1241,6 +1264,78 @@ function renderAlgo(dt){
 }
 
 /* ===================================================================== */
+/* ROOM 8 — BELL TEST (CHSH)                                             */
+/* ===================================================================== */
+const D2R=Math.PI/180;
+const corrE=(x,y)=>Math.cos((x-y)*D2R);   // E(a,b) for |Φ+⟩ measured in the X–Z plane
+function bellGet(){return {
+  a:+document.getElementById('bell-a').value, a2:+document.getElementById('bell-a2').value,
+  b:+document.getElementById('bell-b').value, b2:+document.getElementById('bell-b2').value };}
+function bellSet(a,a2,b,b2){
+  document.getElementById('bell-a').value=a; document.getElementById('bell-a2').value=a2;
+  document.getElementById('bell-b').value=b; document.getElementById('bell-b2').value=b2;
+}
+document.getElementById('bell-opt').onclick=()=>{bellSet(0,90,45,135); linkConcept('chsh'); tone(523,0.3,0.12);};
+document.getElementById('bell-aligned').onclick=()=>{bellSet(0,0,0,0); tone(294,0.3,0.1);};
+let bellBroken=false;
+function renderBell(dt){
+  const cv=document.getElementById('c-bell'),g=cv._g,W=cv._w,H=cv._h;
+  const {a,a2,b,b2}=bellGet();
+  const Eab=corrE(a,b),Eab2=corrE(a,b2),Ea2b=corrE(a2,b),Ea2b2=corrE(a2,b2);
+  const S=Eab-Eab2+Ea2b+Ea2b2, absS=Math.abs(S);
+  if(absS>2.0005 && !bellBroken){bellBroken=true; tone(659,0.28,0.13);}
+  if(absS<=2.0005) bellBroken=false;
+  g.clearRect(0,0,W,H);
+  // analyzer dials
+  const dial=(cx,cy,r,ang,lab,col)=>{
+    g.strokeStyle='#3a4366';g.lineWidth=1.5;g.beginPath();g.arc(cx,cy,r,0,TAU);g.stroke();
+    const rad=(ang-90)*D2R;
+    g.strokeStyle=col;g.lineWidth=2.6;g.lineCap='round';g.beginPath();
+    g.moveTo(cx-Math.cos(rad)*r,cy-Math.sin(rad)*r);g.lineTo(cx+Math.cos(rad)*r,cy+Math.sin(rad)*r);g.stroke();g.lineCap='butt';
+    g.fillStyle='#9aa2bd';g.font='11px monospace';g.textAlign='center';g.fillText(lab,cx,cy+r+15);
+  };
+  const r=27,y0=44,xs=[W*0.17,W*0.39,W*0.61,W*0.83];
+  dial(xs[0],y0,r,a,'Alice a',  '#7fe4ff');
+  dial(xs[1],y0,r,a2,'Alice a′','#7fe4ff');
+  dial(xs[2],y0,r,b,'Bob b',    '#ffcd6a');
+  dial(xs[3],y0,r,b2,'Bob b′',  '#ffcd6a');
+  g.strokeStyle='rgba(183,155,240,0.45)';g.lineWidth=1.6;g.setLineDash([4,4]);
+  g.beginPath();g.moveTo(xs[1],y0+r+26);g.lineTo(xs[2],y0+r+26);g.stroke();g.setLineDash([]);
+  g.fillStyle='#b79bf0';g.font='10px monospace';g.textAlign='center';
+  g.fillText('entangled pair  |Φ+⟩',W/2,y0+r+40);
+  // S meter
+  const mx=W*0.10,mw=W*0.80,my=H*0.72,mh=26,maxV=3;
+  const px=v=>mx+clamp(v/maxV,0,1)*mw;
+  g.fillStyle='#141a30';g.fillRect(mx,my,mw,mh);
+  const f2=px(2);
+  g.fillStyle='#3a6e6a';g.fillRect(mx,my,Math.min(px(absS),f2)-mx,mh);
+  if(absS>2){g.fillStyle='#ffcd6a';g.shadowColor='#ffcd6a';g.shadowBlur=16;
+    g.fillRect(f2,my,px(absS)-f2,mh);g.shadowBlur=0;}
+  const mark=(v,col,lab)=>{const X=px(v);g.strokeStyle=col;g.lineWidth=1.5;g.setLineDash([3,3]);
+    g.beginPath();g.moveTo(X,my-7);g.lineTo(X,my+mh+7);g.stroke();g.setLineDash([]);
+    g.fillStyle=col;g.font='10px monospace';g.textAlign='center';g.fillText(lab,X,my-11);};
+  mark(2,'#ff7a7a','classical 2');
+  mark(2*Math.SQRT2,'#ffcd6a','2√2');
+  g.fillStyle='#fff';g.font='bold 14px monospace';g.textAlign='center';
+  g.fillText('|S| = '+fmt(absS,3),W/2,my+mh+24);
+  // labels + verdict
+  document.getElementById('bell-a-v').textContent=a+'°';
+  document.getElementById('bell-a2-v').textContent=a2+'°';
+  document.getElementById('bell-b-v').textContent=b+'°';
+  document.getElementById('bell-b2-v').textContent=b2+'°';
+  const rd=document.getElementById('bell-read');
+  if(absS<=2.0005)
+    rd.innerHTML=`S = ${fmt(S,3)} — within the classical limit. A locally pre-determined world could fake this.`;
+  else
+    rd.innerHTML=`S = ${fmt(S,3)} &gt; 2 — <b class="vi">local realism is broken.</b> No pre-set local values can produce this correlation`
+      +(absS>2.82?`, and you are at the Tsirelson maximum 2√2.`:`.`);
+  document.getElementById('bell-math').innerHTML=
+    `<span class="lbl">E(x,y)</span>⟨(â·σ)(b̂·σ)⟩ = cos(x−y) for |Φ+⟩<br>`+
+    `<span class="lbl">terms</span>E(a,b)=${fmt(Eab,2)}  E(a,b′)=${fmt(Eab2,2)}  E(a′,b)=${fmt(Ea2b,2)}  E(a′,b′)=${fmt(Ea2b2,2)}<br>`+
+    `<span class="lbl">S</span>E(a,b) − E(a,b′) + E(a′,b) + E(a′,b′) = ${fmt(S,3)}   ·   classical ≤ 2 · quantum ≤ 2√2 ≈ 2.828`;
+}
+
+/* ===================================================================== */
 /* ROOM MAP — the concept graph                                          */
 /* ===================================================================== */
 const MAP_EDGES=[
@@ -1267,7 +1362,8 @@ const MAP_EDGES=[
   ['entropy','entanglement'],['bell','tensor'],['bell','cnot'],
   ['advantage','grover'],['grover','amplitude'],['grover','interference'],['deutsch','advantage'],
   ['deutsch','interference'],['superdense','teleport'],['superdense','information'],['superdense','entanglement'],
-  ['densitymatrix','mixedstate'],['densitymatrix','sphere'],['densitymatrix','decoherence']
+  ['densitymatrix','mixedstate'],['densitymatrix','sphere'],['densitymatrix','decoherence'],
+  ['chsh','bell'],['chsh','nonlocality'],['chsh','entanglement'],['chsh','measurement']
 ];
 const MAP_LABEL={
   sphere:'sphere',axes:'X·Y·Z axes',superposition:'superposition',phase:'phase',poles:'poles',gates:'gates',
@@ -1278,10 +1374,10 @@ const MAP_LABEL={
   bornrule:'Born rule',collapse:'collapse',measproblem:'measure problem',observer:'observer',
   zeno:'Zeno effect',cat:'cat',
   unitary:'unitary',hamiltonian:'evolution',tensor:'joint space',cnot:'CNOT',entropy:'ent. entropy',
-  grover:'Grover',deutsch:'Deutsch–Jozsa',superdense:'superdense',densitymatrix:'density ρ'
+  grover:'Grover',deutsch:'Deutsch–Jozsa',superdense:'superdense',densitymatrix:'density ρ',chsh:'CHSH'
 };
 const ROOM_COL={qubit:'#7fe4ff',interf:'#ffcd6a',entang:'#b79bf0',measure:'#7fd9a0',
-  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a'};
+  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a',bell:'#c08ae0'};
 let mapNodes=null, mapDrag=null;
 function initMap(){
   const conceptRoom={};
@@ -1383,6 +1479,7 @@ const ROOMS={
   gates:{cv:'c-gates',render:renderGates},
   two:{cv:'c-two',render:renderTwo},
   algo:{cv:'c-algo',render:renderAlgo},
+  bell:{cv:'c-bell',render:renderBell},
   map:{cv:'c-map',render:renderMap}
 };
 let active='qubit';
@@ -1968,6 +2065,17 @@ const CONCEPTS={
     ['It is teleportation run in reverse: there you spend entanglement to move a state; here you spend it to double a channel.',
      'Two protocols, one resource — entanglement as a thing you can budget and spend.']
   ]},
+  chsh:{title:'Bell’s inequality (CHSH)',layers:[
+    ['Suppose every particle quietly carries the answers to any question you might ask, decided before you look.'],
+    ['If that were true — and if a measurement here can’t instantly affect one far away — there’s a hard ceiling on how correlated two distant measurements can be.'],
+    ['That ceiling is a single number: S ≤ 2. It assumes only two things — local effects and pre-existing values. Nothing quantum.'],
+    ['Entangled qubits break it. Quantum mechanics predicts S can reach 2√2 ≈ 2.83 — past the ceiling.'],
+    ['Real experiments agree with the quantum value, loophole-free since 2015. So one of those two innocent assumptions is simply false about our world.'],
+    ['The recipe: for |Φ+⟩ the correlation is E(a,b) = cos(θₐ − θ_b). Pick a=0°, a′=90°, b=45°, b′=135° and the four terms of S = E(a,b) − E(a,b′) + E(a′,b) + E(a′,b′) stack to 2√2.'],
+    ['But 2√2 is itself a wall — Tsirelson’s bound. Quantum correlations are stronger than classical, yet not as strong as logic alone would allow (you can’t reach S = 4).'],
+    ['Why does nature stop exactly at 2√2, and not further? That is an open foundational question.',
+     'Principles like "information causality" and "macroscopic locality" recover the 2√2 limit from scratch — but a single agreed reason the universe is this non-local and no more does not yet exist.']
+  ]},
   densitymatrix:{title:'The density matrix',layers:[
     ['A pure state is a single arrow on the sphere. But what if you are not sure which state you actually hold?'],
     ['Then you carry a probability mix of arrows — and no single arrow can describe you anymore.'],
@@ -1996,6 +2104,8 @@ const ROOM_CHIPS={
     ['entropy','entanglement entropy'],['bell','Bell states'],['nocloning','no-cloning']],
   algo:[['grover','Grover search'],['deutsch','Deutsch–Jozsa'],['advantage','the advantage'],
     ['superdense','superdense coding'],['teleport','teleportation'],['information','quantum information']],
+  bell:[['chsh','Bell’s inequality'],['bell','Bell’s theorem'],['nonlocality','spooky action'],
+    ['entanglement','entanglement']],
   map:[]
 };
 const TRYS={
@@ -2006,6 +2116,7 @@ const TRYS={
   gates:'set the angle to π/2, axis x, and apply twice — two half-turns equal one X. Then read the matrix multiply itself out.',
   two:'press Bell, then read S(ρ_A) = 1 bit — each qubit has lost its own state entirely into the pair.',
   algo:'pick a marked item, then step Grover. Watch one bar climb and the rest drain — and stop at step 2, the peak.',
+  bell:'press snap to optimal and watch S pass 2 and reach 2.83 — you just ruled out every locally pre-determined theory of the world.',
   map:'drag a concept to pull the whole web around. The dots you have opened glow — click any dot to read it.'
 };
 
@@ -2085,7 +2196,7 @@ window.addEventListener('resize',()=>fit(document.getElementById(ROOMS[active].c
 function buildContext(){
   const roomName={qubit:'The Qubit',interf:'Interference',
     entang:'Entanglement',measure:'Measurement',
-    gates:'Gate Lab',two:'Two Qubits',algo:'Algorithms',map:'Concept Map'}[active];
+    gates:'Gate Lab',two:'Two Qubits',algo:'Algorithms',bell:'Bell Test',map:'Concept Map'}[active];
   const p=['Room: '+roomName];
   if(focus){
     const c=CONCEPTS[focus];
@@ -2109,6 +2220,10 @@ function buildContext(){
     p.push(alg==='grover'
       ? `Grover, marked |${binStr(aMark,3)}⟩, step ${aStep}, P(marked)=${fmt(aState?cabs2(aState[aMark]):0,3)}`
       : `Deutsch–Jozsa, oracle ${djOracle}, stage ${djStage}/3`);
+  } else if(active==='bell'){
+    const {a,a2,b,b2}=bellGet();
+    const S=corrE(a,b)-corrE(a,b2)+corrE(a2,b)+corrE(a2,b2);
+    p.push(`Bell/CHSH at a=${a}°,a′=${a2}°,b=${b}°,b′=${b2}°; S=${fmt(S,3)} (classical ≤2, Tsirelson 2√2)`);
   }
   const seen=Object.keys(progress);
   if(seen.length) p.push('explored so far — '+
