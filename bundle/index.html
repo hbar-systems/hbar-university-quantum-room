@@ -470,6 +470,29 @@ function blochSphere(g,cx,cy,R,opt){
     }
   }
   seg({x:0,y:0,z:-1.16},{x:0,y:0,z:1.16},'#6b76a8',1.2);
+  // the three measurement axes — X (|+⟩,|−⟩), Y (|+i⟩,|−i⟩), Z is the poles
+  if(opt.axes){
+    const hotA=focus==='axes';
+    seg({x:-1.16,y:0,z:0},{x:1.16,y:0,z:0},hotA?'#7d8ec8':'#6b76a8',hotA?1.4:1);
+    seg({x:0,y:-1.16,z:0},{x:0,y:1.16,z:0},hotA?'#7d8ec8':'#6b76a8',hotA?1.4:1);
+    const card=(p,col,lab)=>{
+      const A=S(p), behind=A.d>0;
+      g.globalAlpha=behind?0.4:1;
+      const r=hotA?4.2+Math.sin(clock*4)*0.8:3.2;
+      g.shadowColor=col;g.shadowBlur=hotA?14:8;
+      g.fillStyle=col;g.beginPath();g.arc(A.x,A.y,r,0,TAU);g.fill();
+      g.shadowBlur=0;
+      g.fillStyle=col;g.font='12px Georgia,serif';
+      g.textAlign='center';g.textBaseline='middle';
+      const L=S({x:p.x*1.3,y:p.y*1.3,z:p.z*1.3});
+      g.fillText(lab,L.x,L.y);
+      g.globalAlpha=1;
+    };
+    card({x:1,y:0,z:0},'#8ce0a8','|+⟩');
+    card({x:-1,y:0,z:0},'#8ce0a8','|−⟩');
+    card({x:0,y:1,z:0},'#e08ad0','|+i⟩');
+    card({x:0,y:-1,z:0},'#e08ad0','|−i⟩');
+  }
   // trail
   if(opt.trail && opt.trail.length>1){
     for(let i=1;i<opt.trail.length;i++){
@@ -572,7 +595,7 @@ function renderQubit(dt){
   qTrail.push({...qV}); if(qTrail.length>70) qTrail.shift();
   g.clearRect(0,0,cv._w,cv._h);
   blochSphere(g,cv._w/2,cv._h/2,Math.min(cv._w,cv._h)*0.40,
-    {vec:qV,trail:qTrail,phaseArc:true,focus:focus});
+    {vec:qV,trail:qTrail,phaseArc:true,axes:true,focus:focus});
   const th=Math.acos(clamp(qV.z,-1,1)), ph=(Math.atan2(qV.y,qV.x)+TAU)%TAU;
   const a=Math.cos(th/2),b=Math.sin(th/2);
   document.getElementById('q-state').innerHTML=
@@ -740,7 +763,7 @@ function renderMeasure(dt){
     if(mSnap.t>=1) mSnap=null;
   }
   g.clearRect(0,0,W,H);
-  blochSphere(g,W/2,H/2,Math.min(W,H)*0.38,{vec:vec,phaseArc:false});
+  blochSphere(g,W/2,H/2,Math.min(W,H)*0.38,{vec:vec,phaseArc:false,axes:true});
   document.getElementById('m-lab').textContent=`θ = ${piStr(th)}`;
   document.getElementById('m-p0').textContent=fmt(p0,3);
   document.getElementById('m-p1').textContent=fmt(p1,3);
@@ -766,6 +789,7 @@ function renderMeasure(dt){
 /* ===================================================================== */
 const MAP_EDGES=[
   ['sphere','superposition'],['sphere','poles'],['sphere','phase'],['sphere','mixedstate'],
+  ['sphere','axes'],['axes','poles'],['axes','phase'],['axes','measurement'],['axes','uncertainty'],['axes','gates'],
   ['superposition','amplitude'],['superposition','phase'],['superposition','measurement'],
   ['superposition','entanglement'],['superposition','cat'],
   ['phase','interference'],['phase','gates'],
@@ -784,7 +808,7 @@ const MAP_EDGES=[
   ['collapse','observer'],['measproblem','cat'],['measproblem','observer'],['zeno','observer']
 ];
 const MAP_LABEL={
-  sphere:'sphere',superposition:'superposition',phase:'phase',poles:'poles',gates:'gates',
+  sphere:'sphere',axes:'X·Y·Z axes',superposition:'superposition',phase:'phase',poles:'poles',gates:'gates',
   measurement:'measurement',nocloning:'no-cloning',uncertainty:'uncertainty',realqubits:'real qubits',
   amplitude:'amplitude',interference:'interference',advantage:'advantage',doubleslit:'double slit',
   decoherence:'decoherence',eraser:'eraser',information:'information',entanglement:'entanglement',
@@ -962,6 +986,29 @@ const CONCEPTS={
     ['Go one level under the sphere and you find the Hopf fibration.',
      'The full state space is the 3-sphere S³; dividing out the unobservable global phase — a circle sitting at every point — collapses it onto this 2-sphere.',
      'The Bloch sphere is a shadow: a 3-sphere, fibred by circles, projected down to something an eye can hold.']
+  ]},
+  axes:{title:'The three axes — X, Y, Z',layers:[
+    ['The ball has three directions, not one.',
+     'Up–down is only the first. There is also a left–right and a front–back, and each one is a real, askable question.'],
+    ['Up–down asks "0 or 1?".',
+     'The other two axes ask the same qubit completely different questions — and it has a different answer ready for each.'],
+    ['The six tips of the three axes are the only states that answer with total certainty.',
+     'Top and bottom are |0⟩ and |1⟩. The side tips are |+⟩ and |−⟩; the front and back are |+i⟩ and |−i⟩.'],
+    ['|+⟩ and |−⟩ are equal blends of 0 and 1 — same odds, opposite phase.',
+     '|+i⟩ and |−i⟩ are the same blend turned a quarter way around. Phase, made into a place you can point to.'],
+    ['Each axis is a measuring instrument pointed in its own direction.',
+     'Measure along Z and a tilted qubit gambles. Measure along the axis it actually points down, and it answers without hesitation.'],
+    ['The three axes are the eigen-directions of the three Pauli operators — Z reads σ_z, X reads σ_x, Y reads σ_y.',
+     'A "cardinal state" is just an operator catching its own eigenvector: a perfectly sharp answer.'],
+    ['The three axes are mutually unbiased: be certain along one and you are maximally blind along the other two.',
+     'That is not a limit of the apparatus. It is the uncertainty principle drawn as geometry — three perpendicular questions a single arrow can never sharpen at once.'],
+    ['The arrow itself is built from these axes. Its three coordinates are the expectation values (⟨σ_x⟩, ⟨σ_y⟩, ⟨σ_z⟩).',
+     'Measuring along an axis is projecting the arrow onto it; the shadow it casts is the bias of the coin you are about to flip.'],
+    ['Every operation on a qubit is a rotation about one of these axes — X, Y and Z generate the whole group SU(2), which turns the sphere as SO(3).',
+     'A gate is a turn. The entire single-qubit machine is one arrow and the axes you are allowed to spin it around.'],
+    ['Three is not arbitrary — a qubit admits exactly three mutually unbiased bases, no more.',
+     'Push to higher-dimensional systems and the number of such "maximally independent" questions becomes an open problem, tied to the existence of certain finite geometries.',
+     'The three axes you are looking at are the largest fully-independent set of questions this small a piece of reality will hold.']
   ]},
   superposition:{title:'Superposition',layers:[
     ['A coin on a table is heads or tails.',
@@ -1344,7 +1391,7 @@ const CONCEPTS={
   ]}
 };
 const ROOM_CHIPS={
-  qubit:[['sphere','the sphere'],['superposition','superposition'],['phase','phase φ'],
+  qubit:[['sphere','the sphere'],['axes','the three axes'],['superposition','superposition'],['phase','phase φ'],
     ['poles','the poles'],['gates','gates'],['measurement','measurement'],
     ['nocloning','no-cloning'],['uncertainty','uncertainty'],['realqubits','real qubits']],
   interf:[['amplitude','amplitude'],['interference','interference'],['advantage','the advantage'],

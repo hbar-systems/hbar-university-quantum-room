@@ -6,6 +6,11 @@
 # Schema: brain-app/v1 — api/schemas/brain-app.schema.json in brainfoundry-nous.
 # Created: 2026-05-19. v0.2.0 brain-bridge wiring: 2026-05-20.
 #
+# v0.4.0 (2026-06-21): the Bloch sphere now draws all three measurement axes —
+#   X (|+⟩,|−⟩) and Y (|+i⟩,|−i⟩) alongside the Z poles (|0⟩,|1⟩) — and adds a
+#   "three axes" read-further concept (plain language down to mutually-unbiased
+#   bases and SU(2)/SO(3)). Axes show in the Qubit and Measurement rooms.
+#
 # v0.2.0 wires the postMessage bridge:
 #   * "Ask the brain" sends current context (room, concept, depth, qubit state,
 #     concepts explored) via the llm.complete intent. The brain answers over
@@ -19,7 +24,7 @@
 dialect: brain-app/v1
 id: quantum-room
 name: The Quantum Room
-version: 0.3.0
+version: 0.4.0
 description: An interactive instrument for understanding quantum mechanics — five rooms, a concept map, and layered read-further explanations from plain language to real physics.
 license: AGPL-3.0
 
