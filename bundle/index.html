@@ -57,7 +57,20 @@
     font-family:Georgia,serif;transition:.12s}
   .gate:hover{border-color:var(--am);color:var(--am);background:#1e2442}
   .gate:active{transform:translateY(1px)}
+  .circuit{display:flex;gap:0;align-items:center;flex-wrap:wrap;margin:12px 0 2px;
+    font-family:"SF Mono",ui-monospace,monospace;font-size:12.5px;color:var(--mut)}
+  .circuit .wire{color:var(--faint);padding:0 1px}
+  .circuit .gx{display:inline-flex;align-items:center;justify-content:center;min-width:24px;
+    height:25px;padding:0 6px;margin:0 1px;border:1px solid #3c5c78;border-radius:6px;
+    background:#172132;color:var(--cy);font-family:Georgia,serif;font-size:13px}
+  .circuit .gx.last{border-color:var(--am);color:var(--am);box-shadow:0 0 8px rgba(255,205,106,.3)}
+  .ghint{margin-top:9px;font-size:12.5px;color:var(--am);min-height:15px;line-height:1.5}
+  .seclab{font-size:11px;color:var(--faint);letter-spacing:.6px;text-transform:uppercase;
+    margin:15px 0 6px;display:block}
   .sep{flex:1}
+  .rax{font-size:12px;color:var(--mut);align-self:center;margin-right:2px;letter-spacing:.4px}
+  .gate.wide{width:auto;padding:0 9px;font-size:13px}
+  .act.sm{padding:6px 9px;font-size:12px}
   .act{background:#141833;color:var(--mut);border:1px solid #272e4d;
     padding:8px 13px;border-radius:9px;cursor:pointer;font-size:12.5px;
     font-family:inherit;transition:.12s}
@@ -156,7 +169,7 @@
 
   /* math layer — surfaces live equations across the visuals. Off by default. */
   .math{display:none}
-  body.math .math{display:block}
+  body.mathon .math{display:block}
   .mathstrip{margin-top:9px;padding:9px 12px;background:#0c0f20;
     border:1px solid #1f2640;border-radius:9px;font-size:11.5px;color:#cdd3e6;
     line-height:1.85;text-align:left}
@@ -191,18 +204,21 @@
   <button class="tab" data-r="interf"><span class="n">2</span>Interference</button>
   <button class="tab" data-r="entang"><span class="n">3</span>Entanglement</button>
   <button class="tab" data-r="measure"><span class="n">4</span>Measurement</button>
+  <button class="tab" data-r="gates"><span class="n">5</span>Gate Lab</button>
+  <button class="tab" data-r="two"><span class="n">6</span>Two Qubits</button>
+  <button class="tab" data-r="algo"><span class="n">7</span>Algorithms</button>
   <button class="tab" data-r="map">Map</button>
   <span class="navsep"></span>
-  <button class="mini" id="math"><span class="dot"></span>math</button>
-  <button class="mini on" id="motion"><span class="dot"></span>motion</button>
-  <button class="mini on" id="sound"><span class="dot"></span>sound</button>
+  <button class="mini" id="math" title="Math layer — reveal the live equations under every room (Bloch vector, amplitudes, matrices, density matrix). Off by default."><span class="dot"></span>math</button>
+  <button class="mini on" id="motion" title="Motion — the gentle continuous turning. On the qubit this is phase precessing in time; turn it off to freeze and study. (The Gate Lab is always still.)"><span class="dot"></span>motion</button>
+  <button class="mini on" id="sound" title="Sound — short tones on gates, measurements and outcomes. Turn off for silence."><span class="dot"></span>sound</button>
 </nav>
 
 <div class="try" id="try"></div>
 
 <!-- ROOM 1 -->
 <section class="room on" id="room-qubit">
-  <div class="roomsub">Drag to turn it. Press a gate — every gate is a rotation.</div>
+  <div class="roomsub">Drag to turn it. Press a gate — every gate is a rotation. It keeps gently precessing on its own (that drift is phase, e<sup>iφ</sup>, evolving); the <b>motion</b> toggle up top freezes it. For the full bench — matrices, custom angles, a gate history — see <b>Gate Lab</b>.</div>
   <canvas id="c-qubit" class="grab" style="height:400px"></canvas>
   <div class="ctl">
     <button class="gate" data-g="X" title="Pauli-X = [[0, 1], [1, 0]]   — π rotation about x">X</button>
@@ -224,7 +240,7 @@
   <div class="roomsub">Two paths, two arrows. Slide the phase and watch them build, then cancel.</div>
   <canvas id="c-interf" style="height:340px"></canvas>
   <label class="fld">phase of path 2 &mdash; <span class="v mono" id="i-lab"></span></label>
-  <input type="range" id="i-phase" min="0" max="628" value="0">
+  <input type="range" id="i-phase" min="0" max="628" value="0" title="Phase of the second path, 0 to 2π. At 0 the paths add (bright); at π they cancel (dark). Total is always conserved.">
   <div class="ctl">
     <button class="act go" id="i-sweep">auto-sweep</button>
     <button class="act" id="i-zero">phase = 0</button>
@@ -238,7 +254,7 @@
   <div class="roomsub">Two qubits. Slide them into entanglement — each one's own arrow fades.</div>
   <canvas id="c-entang" class="grab" style="height:340px"></canvas>
   <label class="fld">entanglement &mdash; <span class="v mono" id="e-lab"></span></label>
-  <input type="range" id="e-amt" min="0" max="100" value="0">
+  <input type="range" id="e-amt" min="0" max="100" value="0" title="Entanglement strength. At 0 the qubits are independent; at 100% each one's own arrow vanishes — its state lives only in the pair.">
   <div class="ctl">
     <button class="act go" id="e-measure">measure qubit A</button>
     <button class="act" id="e-reset">reset</button>
@@ -252,7 +268,7 @@
   <div class="roomsub">Tilt the state, then measure. One shot is random; the tally is the law.</div>
   <canvas id="c-measure" class="grab" style="height:300px"></canvas>
   <label class="fld">tilt the state &mdash; <span class="v mono" id="m-lab"></span></label>
-  <input type="range" id="m-tilt" min="0" max="100" value="50">
+  <input type="range" id="m-tilt" min="0" max="100" value="50" title="Tilt the state from |0⟩ (top) toward |1⟩ (bottom). The tilt sets P(0) and P(1) — the odds each measurement obeys.">
   <div class="bars">
     <div class="bar">
       <div class="cap"><span>P(0)</span><span class="mono cy" id="m-p0"></span></div>
@@ -280,6 +296,91 @@
   </div>
   <div class="read mono" id="m-read">no measurements yet.</div>
   <div class="math mathstrip mono" id="m-math"></div>
+</section>
+
+<!-- ROOM 5 — GATE LAB -->
+<section class="room" id="room-gates">
+  <div class="roomsub">A still bench for building and reading gate sequences. The sphere holds steady here — drag to inspect. Press gates and they stack left-to-right in time; the state, the matrix, and the running product all update in step.</div>
+  <canvas id="c-gates" class="grab" style="height:330px"></canvas>
+  <div class="state mono" id="g-state"></div>
+  <div class="circuit" id="g-circuit"></div>
+  <div class="ghint" id="g-hint"></div>
+  <span class="seclab">named gates — each is one fixed rotation (hover for what it does)</span>
+  <div class="ctl">
+    <button class="gate" data-gg="X" title="Pauli-X — the quantum NOT. A π turn about the x-axis. Swaps |0⟩↔|1⟩.">X</button>
+    <button class="gate" data-gg="Y" title="Pauli-Y — a π turn about the y-axis. A combined bit-flip and phase-flip.">Y</button>
+    <button class="gate" data-gg="Z" title="Pauli-Z — the phase flip. A π turn about the z-axis. Sends |1⟩→−|1⟩ and leaves the poles fixed.">Z</button>
+    <button class="gate" data-gg="H" title="Hadamard — a π turn about the diagonal (x+z)/√2. Builds the equal superposition |+⟩ from |0⟩, and swaps the x- and z-axes.">H</button>
+    <button class="gate" data-gg="S" title="Phase gate S — a π/2 turn about z. The square root of Z: pressing S twice equals Z.">S</button>
+    <button class="gate" data-gg="T" title="T gate (π/8) — a π/4 turn about z. Pressing T twice equals S. With H and CNOT it forms a universal set.">T</button>
+    <button class="gate wide" data-gg="√X" title="√X — the square root of NOT. A π/2 turn about x. Pressing it twice equals X.">√X</button>
+    <span class="sep"></span>
+    <button class="act" id="g-undo" title="Remove the last gate and replay the sequence from |0⟩.">undo</button>
+    <button class="act" id="g-reset" title="Clear the whole sequence and return to |0⟩.">reset |0&rang;</button>
+  </div>
+  <span class="seclab">custom rotation — pick an axis, set the angle, apply</span>
+  <div class="ctl">
+    <span class="rax">axis</span>
+    <button class="act sm go axb" data-ax="x" title="Rotate about the x-axis (the |+⟩/|−⟩ axis).">x</button>
+    <button class="act sm axb" data-ax="y" title="Rotate about the y-axis (the |+i⟩/|−i⟩ axis).">y</button>
+    <button class="act sm axb" data-ax="z" title="Rotate about the z-axis (the |0⟩/|1⟩ axis — pure phase).">z</button>
+    <span class="sep"></span>
+    <span class="v mono" id="g-ang"></span>
+    <button class="act go" id="g-apply" title="Apply the rotation R(θ) about the chosen axis and add it to the sequence.">apply</button>
+  </div>
+  <input type="range" id="g-theta" min="-628" max="628" value="314" title="Rotation angle θ, from −2π to +2π. The 2×2 matrix updates live as you drag; press apply to commit it.">
+  <span class="seclab">famous identities — load a known sequence and watch it resolve</span>
+  <div class="ctl" id="g-seqs">
+    <button class="act sm" data-seq="HZH" title="Conjugating Z by Hadamard turns it into X. H·Z·H = X — a change of basis.">H·Z·H = X</button>
+    <button class="act sm" data-seq="HXH" title="Conjugating X by Hadamard turns it into Z. H·X·H = Z.">H·X·H = Z</button>
+    <button class="act sm" data-seq="SS" title="Two phase gates make a Z. S·S = Z (S is the square root of Z).">S·S = Z</button>
+    <button class="act sm" data-seq="TT" title="Two T gates make an S. T·T = S (T is the fourth root of Z).">T·T = S</button>
+    <button class="act sm" data-seq="HH" title="Hadamard is its own inverse. H·H = I returns to where you started.">H·H = I</button>
+  </div>
+  <div class="math mathstrip mono" id="g-math"></div>
+</section>
+
+<!-- ROOM 6 — TWO QUBITS -->
+<section class="room" id="room-two">
+  <div class="roomsub">Two qubits share one list of four amplitudes. Build a Bell pair and watch them lock — no sphere can draw this.</div>
+  <canvas id="c-two" style="height:330px"></canvas>
+  <div class="ctl">
+    <button class="gate" data-t2="H0" title="Hadamard on qubit 0 — put the right-hand qubit into superposition.">H&#8320;</button>
+    <button class="gate" data-t2="H1" title="Hadamard on qubit 1 — put the left-hand qubit into superposition.">H&#8321;</button>
+    <button class="gate" data-t2="X0" title="NOT on qubit 0 — flip the right-hand bit.">X&#8320;</button>
+    <button class="gate" data-t2="X1" title="NOT on qubit 1 — flip the left-hand bit.">X&#8321;</button>
+    <button class="gate" data-t2="Z0" title="Phase flip on qubit 0.">Z&#8320;</button>
+    <button class="gate" data-t2="Z1" title="Phase flip on qubit 1.">Z&#8321;</button>
+    <button class="gate wide" data-t2="CX01" title="CNOT: control qubit 0, target qubit 1. If 0 is 1, flip 1. This is the gate that creates entanglement.">C&#8320;&rarr;&#8321;</button>
+    <button class="gate wide" data-t2="CX10" title="CNOT: control qubit 1, target qubit 0.">C&#8321;&rarr;&#8320;</button>
+    <span class="sep"></span>
+    <button class="act" id="t2-reset" title="Return to the product state |00⟩.">reset |00&rang;</button>
+  </div>
+  <span class="seclab">Bell states — the four maximally-entangled pairs</span>
+  <div class="ctl" id="t2-bells">
+    <button class="act sm" data-bell="phiP" title="|Φ+⟩ = (|00⟩+|11⟩)/√2. Built by H₀ then CNOT.">|Φ+⟩</button>
+    <button class="act sm" data-bell="phiM" title="|Φ−⟩ = (|00⟩−|11⟩)/√2.">|Φ−⟩</button>
+    <button class="act sm" data-bell="psiP" title="|Ψ+⟩ = (|01⟩+|10⟩)/√2.">|Ψ+⟩</button>
+    <button class="act sm" data-bell="psiM" title="|Ψ−⟩ = (|01⟩−|10⟩)/√2 — the singlet, antisymmetric and rotation-invariant.">|Ψ−⟩</button>
+  </div>
+  <div class="read mono" id="t2-read"></div>
+  <div class="math mathstrip mono" id="t2-math"></div>
+</section>
+
+<!-- ROOM 7 — ALGORITHMS -->
+<section class="room" id="room-algo">
+  <div class="roomsub">Where the speedup lives. Step through an algorithm — the bars are the amplitudes the machine is steering toward an answer.</div>
+  <canvas id="c-algo" style="height:300px"></canvas>
+  <div class="ctl">
+    <button class="act go" data-alg="grover" title="Grover's search — find a marked item among N in ~√N steps. Watch one amplitude bar grow each round.">Grover search</button>
+    <button class="act" data-alg="dj" title="Deutsch–Jozsa — decide constant vs balanced in a single query using phase kickback.">Deutsch&ndash;Jozsa</button>
+    <span class="sep"></span>
+    <button class="act go" id="a-step" title="Advance the algorithm by one step (one Grover iteration, or one stage of Deutsch).">step &rarr;</button>
+    <button class="act" id="a-reset" title="Restart this algorithm from its initial state.">reset</button>
+  </div>
+  <div class="ctl" id="a-sub"></div>
+  <div class="read mono" id="a-read"></div>
+  <div class="math mathstrip mono" id="a-math"></div>
 </section>
 
 <!-- ROOM MAP -->
@@ -346,6 +447,119 @@ function piStr(x){
     }
   }
   return r.toFixed(2)+'π';
+}
+
+/* ---- complex + multi-qubit state (Gate Lab, Two Qubits, Algorithms) -- */
+const C=(re,im)=>({re:re,im:im||0});
+const cadd=(a,b)=>({re:a.re+b.re,im:a.im+b.im});
+const csub=(a,b)=>({re:a.re-b.re,im:a.im-b.im});
+const cmul=(a,b)=>({re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re});
+const cscale=(a,s)=>({re:a.re*s,im:a.im*s});
+const cabs2=a=>a.re*a.re+a.im*a.im;
+const cabs=a=>Math.hypot(a.re,a.im);
+const cphase=a=>Math.atan2(a.im,a.re);
+const cconj=a=>({re:a.re,im:-a.im});
+function ket(n,i){const s=[];for(let k=0;k<(1<<n);k++)s.push(C(k===i?1:0,0));return s;}
+function clone(s){return s.map(x=>({re:x.re,im:x.im}));}
+/* apply a single-qubit 2x2 matrix M to qubit q (q=0 is least significant) */
+function apply1(state,q,M){
+  const out=clone(state), step=1<<q;
+  for(let i=0;i<state.length;i++){
+    if(i&step) continue;
+    const j=i|step, a=state[i], b=state[j];
+    out[i]=cadd(cmul(M[0][0],a),cmul(M[0][1],b));
+    out[j]=cadd(cmul(M[1][0],a),cmul(M[1][1],b));
+  }
+  return out;
+}
+/* controlled-NOT: control c, target t */
+function applyCX(state,c,t){
+  const out=clone(state);
+  for(let i=0;i<state.length;i++){
+    if((i&(1<<c)) && !(i&(1<<t))){
+      const j=i|(1<<t), tmp=out[i]; out[i]=out[j]; out[j]=tmp;
+    }
+  }
+  return out;
+}
+const probsOf=s=>s.map(cabs2);
+function binStr(i,n){let s='';for(let b=n-1;b>=0;b--)s+=(i>>b)&1;return s;}
+/* canonical single-qubit gate matrices */
+const M_X=[[C(0),C(1)],[C(1),C(0)]];
+const M_Y=[[C(0),C(0,-1)],[C(0,1),C(0)]];
+const M_Z=[[C(1),C(0)],[C(0),C(-1)]];
+const M_H=[[C(Math.SQRT1_2),C(Math.SQRT1_2)],[C(Math.SQRT1_2),C(-Math.SQRT1_2)]];
+const M_S=[[C(1),C(0)],[C(0),C(0,1)]];
+const M_T=[[C(1),C(0)],[C(0),C(Math.SQRT1_2,Math.SQRT1_2)]];
+const M_SX=[[C(0.5,0.5),C(0.5,-0.5)],[C(0.5,-0.5),C(0.5,0.5)]];
+/* multiply two complex 2x2 matrices */
+function mmul(A,B){
+  const r=[[C(0),C(0)],[C(0),C(0)]];
+  for(let i=0;i<2;i++)for(let j=0;j<2;j++){
+    let s=C(0);
+    for(let m=0;m<2;m++) s=cadd(s,cmul(A[i][m],B[m][j]));
+    r[i][j]=s;
+  }
+  return r;
+}
+const M_I=[[C(1),C(0)],[C(0),C(1)]];
+/* rotation about unit axis k by angle a -> complex 2x2 */
+function rotMat(k,a){
+  const c=Math.cos(a/2), s=Math.sin(a/2);
+  return [[C(c,-s*k.z), C(-s*k.y,-s*k.x)],
+          [C(s*k.y,-s*k.x), C(c,s*k.z)]];
+}
+/* hue-by-phase amplitude bars — the standard way to show a state vector */
+function phaseColor(ph,p){
+  if(p!==undefined && p<1e-6) return '#1a2036';
+  const deg=((ph/Math.PI*180)%360+360)%360;
+  return `hsl(${deg.toFixed(0)},68%,62%)`;
+}
+function ampBars(g,state,n,x0,y0,w,h,opt){
+  opt=opt||{};
+  const N=state.length, gap=Math.max(2,w*0.012), bw=(w-gap*(N-1))/N;
+  for(let i=0;i<N;i++){
+    const p=cabs2(state[i]), bh=h*Math.min(1,p);
+    const bx=x0+i*(bw+gap), ph=cphase(state[i]);
+    g.fillStyle='#141a30';g.fillRect(bx,y0,bw,h);
+    if(opt.mark===i){g.strokeStyle='#ffcd6a';g.lineWidth=1.5;g.strokeRect(bx-1,y0-1,bw+2,h+2);}
+    g.fillStyle=phaseColor(ph,p);g.fillRect(bx,y0+h-bh,bw,bh);
+    g.fillStyle='#8b93b0';g.font='9px monospace';g.textAlign='center';
+    g.fillText('|'+binStr(i,n)+'⟩',bx+bw/2,y0+h+12);
+    if(p>0.006){g.fillStyle='#cdd3e6';g.font='9px monospace';
+      g.fillText(fmt(Math.sqrt(p),2),bx+bw/2,y0+h-bh-4);}
+  }
+}
+function phaseLegend(g,x,y){
+  g.font='9px monospace';g.textAlign='left';
+  g.fillStyle='#8b93b0';g.fillText('phase:',x,y);
+  const labs=[['0',0],['π/2',Math.PI/2],['±π',Math.PI],['−π/2',-Math.PI/2]];
+  let cx=x+38;
+  for(const [lab,ph] of labs){
+    g.fillStyle=phaseColor(ph,1);g.fillRect(cx,y-8,9,9);
+    g.fillStyle='#8b93b0';g.fillText(lab,cx+12,y);
+    cx+=12+g.measureText(lab).width+12;
+  }
+}
+/* complex / matrix formatting for the math strips */
+function cstr(z){
+  const e=1e-4, r=Math.abs(z.re)<e?0:z.re, i=Math.abs(z.im)<e?0:z.im;
+  if(i===0) return fmt(r,2);
+  if(r===0) return (i<0?'−':'')+(Math.abs(Math.abs(i)-1)<e?'':fmt(Math.abs(i),2))+'i';
+  return `${fmt(r,2)}${i<0?'−':'+'}${fmt(Math.abs(i),2)}i`;
+}
+function matHTML(M,label){
+  return `<span class="lbl">${label}</span>[ ${cstr(M[0][0])},  ${cstr(M[0][1])} ;  ${cstr(M[1][0])},  ${cstr(M[1][1])} ]`;
+}
+function stateStr(s,n){
+  const t=[];
+  for(let i=0;i<s.length;i++){
+    if(cabs2(s[i])<1e-4) continue;
+    const m=cabs(s[i]), ph=cphase(s[i]);
+    const pf=Math.abs(ph)<0.02?'':Math.abs(Math.abs(ph)-Math.PI)<0.02?'(−1)':`e^{i${piStr(ph)}}·`;
+    t.push(`${fmt(m,2)}·${pf}|${binStr(i,n)}⟩`);
+  }
+  return t.join('  +  ')||'0';
 }
 
 /* ---- brain-app bridge ----------------------------------------------- *
@@ -606,7 +820,8 @@ function renderQubit(dt){
     `P(0) <b>${fmt(a*a,2)}</b> · P(1) <b>${fmt(b*b,2)}</b>`;
   document.getElementById('q-math').innerHTML=
     `<span class="lbl">Bloch vector</span>r = (⟨σ<sub>x</sub>⟩, ⟨σ<sub>y</sub>⟩, ⟨σ<sub>z</sub>⟩) = (${fmt(qV.x,3)}, ${fmt(qV.y,3)}, ${fmt(qV.z,3)})<br>`+
-    `<span class="lbl">amplitudes</span>α = ⟨0|ψ⟩ = cos(θ/2) = ${fmt(a,3)},   β = ⟨1|ψ⟩ = e<sup>i·${piStr(ph)}</sup>·sin(θ/2) = ${fmt(b,3)}·e<sup>i·${piStr(ph)}</sup>`;
+    `<span class="lbl">amplitudes</span>α = ⟨0|ψ⟩ = cos(θ/2) = ${fmt(a,3)},   β = ⟨1|ψ⟩ = e<sup>i·${piStr(ph)}</sup>·sin(θ/2) = ${fmt(b,3)}·e<sup>i·${piStr(ph)}</sup><br>`+
+    `<span class="lbl">density ρ</span>½[ 1+z, x−iy ; x+iy, 1−z ] = [ ${fmt(a*a,2)}, ${cstr(C(qV.x/2,-qV.y/2))} ; ${cstr(C(qV.x/2,qV.y/2))}, ${fmt(b*b,2)} ]`;
 }
 
 /* ===================================================================== */
@@ -785,6 +1000,247 @@ function renderMeasure(dt){
 }
 
 /* ===================================================================== */
+/* ROOM 5 — GATE LAB                                                     */
+/* ===================================================================== */
+const GLAB={
+  X:{k:{x:1,y:0,z:0},a:Math.PI,M:M_X,f:262},
+  Y:{k:{x:0,y:1,z:0},a:Math.PI,M:M_Y,f:294},
+  Z:{k:{x:0,y:0,z:1},a:Math.PI,M:M_Z,f:330},
+  H:{k:{x:Math.SQRT1_2,y:0,z:Math.SQRT1_2},a:Math.PI,M:M_H,f:392},
+  S:{k:{x:0,y:0,z:1},a:Math.PI/2,M:M_S,f:440},
+  T:{k:{x:0,y:0,z:1},a:Math.PI/4,M:M_T,f:523},
+  '√X':{k:{x:1,y:0,z:0},a:Math.PI/2,M:M_SX,f:494}
+};
+const GAXES={x:{x:1,y:0,z:0},y:{x:0,y:1,z:0},z:{x:0,y:0,z:1}};
+let gV={x:0,y:0,z:1}, gAnim=null, gSeq=[], gAxName='x', gShowM=null, gShowLab='', gHint='', gQueue=[];
+const gTheta=document.getElementById('g-theta');
+const GSEQS={HZH:['H','Z','H'],HXH:['H','X','H'],SS:['S','S'],TT:['T','T'],HH:['H','H']};
+/* open a concept ladder in the drawer — the button↔idea link */
+function linkConcept(key){
+  if(focus!==key){ focus=key; depth=Math.max(1,progress[key]||1); renderDrawer(); }
+}
+function gReplay(){let v={x:0,y:0,z:1};for(const s of gSeq)v=rotate(v,s.k,s.a);return v;}
+function gUnitary(){let U=M_I;for(const s of gSeq)U=mmul(s.M,U);return U;}
+function gApply(label,k,a,M,f){
+  if(gAnim)return;
+  const end=rotate(gV,k,a);
+  const moved=Math.hypot(end.x-gV.x,end.y-gV.y,end.z-gV.z);
+  gHint = moved<0.02
+    ? `${label} leaves the arrow put: the state sits on this rotation’s own axis, so only its phase turned (invisible here). Apply H first, then ${label} again to see it bite.`
+    : '';
+  gSeq.push({label,k,a,M});
+  gAnim={k,a,t:0,start:{...gV}}; tone(f||320,0.32,0.12);
+  gShowM=M; gShowLab=label;
+}
+document.querySelectorAll('#room-gates .gate').forEach(b=>b.onclick=()=>{
+  const G=GLAB[b.dataset.gg]; gApply(b.dataset.gg,G.k,G.a,G.M,G.f); linkConcept('unitary');
+});
+document.querySelectorAll('#g-seqs [data-seq]').forEach(b=>b.onclick=()=>{
+  if(gAnim)return;
+  gSeq=[]; gV={x:0,y:0,z:1}; gShowM=null; gHint=''; gQueue=GSEQS[b.dataset.seq].slice();
+  linkConcept('unitary'); tone(330,0.2,0.1);
+});
+document.querySelectorAll('#room-gates .axb').forEach(b=>b.onclick=()=>{
+  gAxName=b.dataset.ax; gShowM=null;
+  document.querySelectorAll('#room-gates .axb').forEach(x=>x.classList.toggle('go',x===b));
+});
+gTheta.addEventListener('input',()=>{gShowM=null;});
+document.getElementById('g-apply').onclick=()=>{
+  const a=gTheta.value/100, k=GAXES[gAxName];
+  gApply('R'+gAxName+'('+piStr(a)+')',k,a,rotMat(k,a),300+Math.abs(a)*30); linkConcept('unitary');
+};
+document.getElementById('g-undo').onclick=()=>{
+  if(gAnim||!gSeq.length)return; gSeq.pop(); gV=gReplay(); gShowM=null; gHint=''; tone(247,0.2,0.08);
+};
+document.getElementById('g-reset').onclick=()=>{
+  if(gAnim)return; gSeq=[]; gV={x:0,y:0,z:1}; gShowM=null; gHint=''; gQueue=[]; tone(196,0.3,0.1);
+};
+function gAxisHint(g,cx,cy,R,k){
+  const S=p=>{const q=project(p);return{x:cx+q.x*R,y:cy-q.y*R};};
+  const A=S({x:-k.x*1.22,y:-k.y*1.22,z:-k.z*1.22}), B=S({x:k.x*1.22,y:k.y*1.22,z:k.z*1.22});
+  g.strokeStyle='rgba(255,205,106,0.45)';g.lineWidth=1.4;g.setLineDash([4,5]);
+  g.beginPath();g.moveTo(A.x,A.y);g.lineTo(B.x,B.y);g.stroke();g.setLineDash([]);
+}
+function gStateHTML(){
+  const th=Math.acos(clamp(gV.z,-1,1)), ph=(Math.atan2(gV.y,gV.x)+TAU)%TAU;
+  const a=Math.cos(th/2), b=Math.sin(th/2);
+  return `|ψ⟩ = <span class="cy">${fmt(a,3)}</span>|0⟩ + <span class="am">${fmt(b,3)}</span> e<sup>i·${piStr(ph)}</sup>|1⟩`;
+}
+function gCircuitHTML(){
+  if(!gSeq.length) return '<span class="wire">|0⟩ &mdash;&mdash;&rarr; &nbsp;(press a gate; it joins here, in time order)</span>';
+  let h='<span class="wire">|0⟩&nbsp;</span>';
+  gSeq.forEach((s,i)=>{
+    h+='<span class="wire">&mdash;</span><span class="gx'+(i===gSeq.length-1?' last':'')+'">'+s.label+'</span>';
+  });
+  return h+'<span class="wire">&mdash;&rarr; now</span>';
+}
+function renderGates(dt){
+  const cv=document.getElementById('c-gates'),g=cv._g;
+  const a=gTheta.value/100, k=GAXES[gAxName];
+  document.getElementById('g-ang').textContent='θ = '+piStr(a);
+  if(!gAnim && gQueue.length){
+    const name=gQueue.shift(), G=GLAB[name]; gApply(name,G.k,G.a,G.M,G.f);
+  }
+  if(gAnim){
+    gAnim.t=clamp(gAnim.t+dt/0.5,0,1);
+    gV=rotate(gAnim.start,gAnim.k,gAnim.a*smooth(gAnim.t));
+    if(gAnim.t>=1){gV=rotate(gAnim.start,gAnim.k,gAnim.a);gAnim=null;}
+  }
+  g.clearRect(0,0,cv._w,cv._h);
+  const R=Math.min(cv._w,cv._h)*0.40;
+  blochSphere(g,cv._w/2,cv._h/2,R,{vec:gV,axes:true,focus:focus});
+  gAxisHint(g,cv._w/2,cv._h/2,R,k);
+  document.getElementById('g-state').innerHTML=gStateHTML();
+  document.getElementById('g-circuit').innerHTML=gCircuitHTML();
+  document.getElementById('g-hint').textContent=gHint;
+  const liveM=gShowM||rotMat(k,a), liveLab=gShowM?('this gate · '+gShowLab):('dial · R'+gAxName+'(θ)');
+  let html=matHTML(liveM,liveLab)+'<br>';
+  if(gSeq.length){
+    const order=gSeq.map(s=>s.label).slice().reverse().join('·');
+    html+=matHTML(gUnitary(),'U total')+`  =  ${order}  <span class="lbl">(last gate pressed sits leftmost)</span><br>`;
+  }
+  html+=`<span class="lbl">Bloch r</span>(${fmt(gV.x,2)}, ${fmt(gV.y,2)}, ${fmt(gV.z,2)})`;
+  document.getElementById('g-math').innerHTML=html;
+}
+
+/* ===================================================================== */
+/* ROOM 6 — TWO QUBITS                                                   */
+/* ===================================================================== */
+let t2=ket(2,0), t2Hist=[];
+function t2Set(label,s,f){t2=s;t2Hist.push(label);tone(f||330,0.2,0.1);}
+const T2OPS={
+  H0:s=>apply1(s,0,M_H), H1:s=>apply1(s,1,M_H),
+  X0:s=>apply1(s,0,M_X), X1:s=>apply1(s,1,M_X),
+  Z0:s=>apply1(s,0,M_Z), Z1:s=>apply1(s,1,M_Z),
+  CX01:s=>applyCX(s,0,1), CX10:s=>applyCX(s,1,0)
+};
+const T2LAB={H0:'H₀',H1:'H₁',X0:'X₀',X1:'X₁',Z0:'Z₀',Z1:'Z₁',CX01:'C₀→₁',CX10:'C₁→₀'};
+document.querySelectorAll('#room-two .gate').forEach(b=>b.onclick=()=>{
+  const op=b.dataset.t2; t2Set(T2LAB[op],T2OPS[op](t2),320);
+  linkConcept(op.indexOf('CX')===0?'cnot':'tensor');
+});
+const T2BELL={
+  phiP:{g:s=>applyCX(apply1(s,0,M_H),0,1),h:['H₀','C₀→₁']},
+  phiM:{g:s=>apply1(applyCX(apply1(s,0,M_H),0,1),0,M_Z),h:['H₀','C₀→₁','Z₀']},
+  psiP:{g:s=>apply1(applyCX(apply1(s,0,M_H),0,1),1,M_X),h:['H₀','C₀→₁','X₁']},
+  psiM:{g:s=>apply1(apply1(applyCX(apply1(s,0,M_H),0,1),1,M_X),0,M_Z),h:['H₀','C₀→₁','X₁','Z₀']}
+};
+document.querySelectorAll('#t2-bells [data-bell]').forEach(b=>b.onclick=()=>{
+  const B=T2BELL[b.dataset.bell]; t2=B.g(ket(2,0)); t2Hist=B.h.slice(); linkConcept('bell'); tone(440,0.3,0.12);
+});
+document.getElementById('t2-reset').onclick=()=>{t2=ket(2,0);t2Hist=[];tone(196,0.3,0.1);};
+function t2Metrics(s){
+  const p=probsOf(s);
+  const r00=p[0]+p[2], r11=p[1]+p[3];
+  const r01=cadd(cmul(s[0],cconj(s[1])),cmul(s[2],cconj(s[3])));
+  const det=r00*r11-cabs2(r01), disc=Math.max(0,1-4*det);
+  const lp=(1+Math.sqrt(disc))/2, lm=(1-Math.sqrt(disc))/2;
+  const S=-(lp>1e-12?lp*Math.log2(lp):0)-(lm>1e-12?lm*Math.log2(lm):0);
+  const conc=2*cabs(csub(cmul(s[0],s[3]),cmul(s[1],s[2])));
+  return {S,conc};
+}
+function renderTwo(dt){
+  const cv=document.getElementById('c-two'),g=cv._g,W=cv._w,H=cv._h;
+  g.clearRect(0,0,W,H);
+  ampBars(g,t2,2,W*0.12,28,W*0.76,H-92);
+  phaseLegend(g,W*0.12,H-20);
+  const {S,conc}=t2Metrics(t2);
+  const ent = S>0.999?'maximally entangled':S>0.01?'partly entangled':'separable (product state)';
+  document.getElementById('t2-read').innerHTML=
+    `circuit:  ${t2Hist.length?t2Hist.join(' · '):'(none)'} &nbsp;—&nbsp; <b class="vi">${ent}</b>`;
+  document.getElementById('t2-math').innerHTML=
+    `<span class="lbl">state</span>|ψ⟩ = ${stateStr(t2,2)}<br>`+
+    `<span class="lbl">entropy</span>S(ρ_A) = ${fmt(S,3)} bit   ·   <span class="lbl">concurrence</span>C = ${fmt(conc,3)}`;
+}
+
+/* ===================================================================== */
+/* ROOM 7 — ALGORITHMS                                                   */
+/* ===================================================================== */
+let alg='grover', aState=null, aStep=0, aMark=5, aDone=false;
+let djOracle='identity', djStage=0;
+const aSub=document.getElementById('a-sub');
+const DJ={
+  'const-0':{bal:false,sign:[1,1]}, 'const-1':{bal:false,sign:[-1,-1]},
+  'identity':{bal:true,sign:[1,-1]}, 'not':{bal:true,sign:[-1,1]}
+};
+function grInit(){let s=ket(3,0);for(let q=0;q<3;q++)s=apply1(s,q,M_H);return s;}
+function grIter(s,w){
+  s=s.map((x,i)=>i===w?cscale(x,-1):x);
+  let mean=C(0,0); for(const x of s)mean=cadd(mean,x); mean=cscale(mean,1/s.length);
+  return s.map(x=>csub(cscale(mean,2),x));
+}
+function aReset(){
+  aStep=0; aDone=false;
+  if(alg==='grover'){ aState=grInit(); }
+  else { aState=ket(1,0); djStage=0; }
+  buildAlgSub();
+}
+function buildAlgSub(){
+  aSub.innerHTML='';
+  const lab=document.createElement('span'); lab.className='rax';
+  lab.textContent= alg==='grover'?'marked':'oracle f';
+  aSub.appendChild(lab);
+  if(alg==='grover'){
+    for(let i=0;i<8;i++){
+      const b=document.createElement('button');
+      b.className='act sm'+(i===aMark?' go':''); b.textContent=binStr(i,3);
+      b.onclick=()=>{aMark=i;aReset();};
+      aSub.appendChild(b);
+    }
+  } else {
+    for(const key of Object.keys(DJ)){
+      const b=document.createElement('button');
+      b.className='act sm'+(key===djOracle?' go':''); b.textContent=key;
+      b.onclick=()=>{djOracle=key;aReset();};
+      aSub.appendChild(b);
+    }
+  }
+}
+document.querySelectorAll('#room-algo [data-alg]').forEach(b=>b.onclick=()=>{
+  alg=b.dataset.alg;
+  document.querySelectorAll('#room-algo [data-alg]').forEach(x=>x.classList.toggle('go',x===b));
+  aReset(); linkConcept(alg==='grover'?'grover':'deutsch');
+});
+document.getElementById('a-reset').onclick=aReset;
+document.getElementById('a-step').onclick=()=>{
+  if(aDone)return;
+  if(alg==='grover'){
+    aState=grIter(aState,aMark); aStep++; tone(300+aStep*60,0.25,0.12);
+    if(aStep>=4) aDone=true;
+  } else {
+    if(djStage===0){ aState=apply1(aState,0,M_H); djStage=1; tone(330,0.2,0.1); }
+    else if(djStage===1){ const sg=DJ[djOracle].sign; aState=aState.map((x,i)=>cscale(x,sg[i])); djStage=2; tone(392,0.2,0.1); }
+    else if(djStage===2){ aState=apply1(aState,0,M_H); djStage=3; aDone=true; tone(494,0.3,0.12); }
+  }
+};
+function renderAlgo(dt){
+  const cv=document.getElementById('c-algo'),g=cv._g,W=cv._w,H=cv._h;
+  if(!aState)aReset();
+  g.clearRect(0,0,W,H);
+  const n= alg==='grover'?3:1;
+  ampBars(g,aState,n,W*0.14,26,W*0.72,H-84,{mark: alg==='grover'?aMark:undefined});
+  phaseLegend(g,W*0.14,H-18);
+  let read, math;
+  if(alg==='grover'){
+    const pm=cabs2(aState[aMark]), opt=2;
+    const peak=Math.sin((2*opt+1)*Math.asin(1/Math.sqrt(8)))**2;
+    read=`Grover · N=8 · marked |${binStr(aMark,3)}⟩ — step <b>${aStep}</b> · P(marked) <b class="cy">${fmt(pm,3)}</b>`
+       +(aStep===opt?' — peak':aStep>opt?' — over-rotated':'');
+    math=`<span class="lbl">init</span>H⊗³|000⟩ = uniform, each amplitude 1/√8<br>`
+        +`<span class="lbl">iterate</span>oracle flips sign of |w⟩, diffusion reflects all about the mean<br>`
+        +`<span class="lbl">optimum</span>≈ ⌊π/4·√N⌋ = ${opt} steps → P ≈ ${fmt(peak,3)} (classical needs ~${8/2} tries)`;
+  } else {
+    const stageLab=['fresh |0⟩','after H','after oracle (phase kickback)','measured'][djStage];
+    const verdict= djStage<3?'step to the end →':(DJ[djOracle].bal?'measured |1⟩ → BALANCED':'measured |0⟩ → CONSTANT');
+    read=`Deutsch · oracle <b>${djOracle}</b> · ${stageLab} — <b class="vi">${verdict}</b>`;
+    math=`<span class="lbl">claim</span>one query decides constant vs balanced; classically you may need two<br>`
+        +`<span class="lbl">how</span>H · oracle(writes answer into phase) · H — interference routes it to one readable bit`;
+  }
+  document.getElementById('a-read').innerHTML=read;
+  document.getElementById('a-math').innerHTML=math;
+}
+
+/* ===================================================================== */
 /* ROOM MAP — the concept graph                                          */
 /* ===================================================================== */
 const MAP_EDGES=[
@@ -805,7 +1261,13 @@ const MAP_EDGES=[
   ['entanglement','mixedstate'],['entanglement','nonlocality'],['entanglement','teleport'],
   ['nonlocality','bell'],['bell','measproblem'],
   ['bornrule','collapse'],['bornrule','measproblem'],['collapse','measproblem'],
-  ['collapse','observer'],['measproblem','cat'],['measproblem','observer'],['zeno','observer']
+  ['collapse','observer'],['measproblem','cat'],['measproblem','observer'],['zeno','observer'],
+  ['gates','unitary'],['unitary','phase'],['unitary','hamiltonian'],['unitary','axes'],['hamiltonian','phase'],
+  ['entanglement','tensor'],['tensor','cnot'],['cnot','gates'],['tensor','entropy'],['entropy','mixedstate'],
+  ['entropy','entanglement'],['bell','tensor'],['bell','cnot'],
+  ['advantage','grover'],['grover','amplitude'],['grover','interference'],['deutsch','advantage'],
+  ['deutsch','interference'],['superdense','teleport'],['superdense','information'],['superdense','entanglement'],
+  ['densitymatrix','mixedstate'],['densitymatrix','sphere'],['densitymatrix','decoherence']
 ];
 const MAP_LABEL={
   sphere:'sphere',axes:'X·Y·Z axes',superposition:'superposition',phase:'phase',poles:'poles',gates:'gates',
@@ -814,9 +1276,12 @@ const MAP_LABEL={
   decoherence:'decoherence',eraser:'eraser',information:'information',entanglement:'entanglement',
   mixedstate:'mixed state',nonlocality:'nonlocality',bell:'Bell',teleport:'teleportation',
   bornrule:'Born rule',collapse:'collapse',measproblem:'measure problem',observer:'observer',
-  zeno:'Zeno effect',cat:'cat'
+  zeno:'Zeno effect',cat:'cat',
+  unitary:'unitary',hamiltonian:'evolution',tensor:'joint space',cnot:'CNOT',entropy:'ent. entropy',
+  grover:'Grover',deutsch:'Deutsch–Jozsa',superdense:'superdense',densitymatrix:'density ρ'
 };
-const ROOM_COL={qubit:'#7fe4ff',interf:'#ffcd6a',entang:'#b79bf0',measure:'#7fd9a0'};
+const ROOM_COL={qubit:'#7fe4ff',interf:'#ffcd6a',entang:'#b79bf0',measure:'#7fd9a0',
+  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a'};
 let mapNodes=null, mapDrag=null;
 function initMap(){
   const conceptRoom={};
@@ -915,13 +1380,16 @@ const ROOMS={
   interf:{cv:'c-interf',render:renderInterf},
   entang:{cv:'c-entang',render:renderEntang},
   measure:{cv:'c-measure',render:renderMeasure},
+  gates:{cv:'c-gates',render:renderGates},
+  two:{cv:'c-two',render:renderTwo},
+  algo:{cv:'c-algo',render:renderAlgo},
   map:{cv:'c-map',render:renderMap}
 };
 let active='qubit';
 let last=performance.now(), ctxAt=0;
 function frame(now){
   const dt=Math.min((now-last)/1000,0.05);last=now;clock+=dt;
-  if(motionOn) cam.az+=dt*0.085;
+  if(motionOn && active!=='gates') cam.az+=dt*0.085;
   const R=ROOMS[active], cv=document.getElementById(R.cv);
   if(cv._w) R.render(dt);
   if(clock-ctxAt>0.6){updateCtx();ctxAt=clock;}
@@ -934,7 +1402,7 @@ function toggle(id,set){
   const el=document.getElementById(id);
   el.onclick=()=>{el.classList.toggle('on');set(el.classList.contains('on'));};
 }
-toggle('math',on=>document.body.classList.toggle('math',on));
+toggle('math',on=>document.body.classList.toggle('mathon',on));
 toggle('motion',on=>motionOn=on);
 toggle('sound',on=>soundOn=on);
 
@@ -956,7 +1424,7 @@ function orbit(cv){
   window.addEventListener('mouseup',()=>on=false);
   window.addEventListener('touchend',()=>on=false);
 }
-['c-qubit','c-entang','c-measure'].forEach(id=>orbit(document.getElementById(id)));
+['c-qubit','c-entang','c-measure','c-gates'].forEach(id=>orbit(document.getElementById(id)));
 
 /* ===================================================================== */
 /* THE READ-FURTHER SYSTEM                                               */
@@ -985,7 +1453,15 @@ const CONCEPTS={
      'The map runs out exactly where quantum computing gets interesting.'],
     ['Go one level under the sphere and you find the Hopf fibration.',
      'The full state space is the 3-sphere S³; dividing out the unobservable global phase — a circle sitting at every point — collapses it onto this 2-sphere.',
-     'The Bloch sphere is a shadow: a 3-sphere, fibred by circles, projected down to something an eye can hold.']
+     'The Bloch sphere is a shadow: a 3-sphere, fibred by circles, projected down to something an eye can hold.'],
+    ['That same fibration is not a quantum curiosity — it is the magnetic monopole, the Dirac string, the polarization of light, the spin of the electron.',
+     'A qubit is the simplest nontrivial fibre bundle in physics. The geometry recurs everywhere a phase rides on top of a state.'],
+    ['Step back further and the sphere is a state space in the exact sense of probability theory: a convex set.',
+     'Pure states are its extreme points (the surface), mixtures fill the inside, and measurements are its faces.',
+     'What singles out quantum theory is that this set is a perfect ball — smooth, round, no flat facets or sharp corners.'],
+    ['Other logically consistent theories — the "generalized probabilistic theories" — live on different shapes: squares, polygons, higher polytopes.',
+     'On those shapes, cloning is sometimes allowed, or correlations exceed even quantum limits.',
+     'Why our universe chose the round ball — no more correlated, no less — is an open reconstruction problem: deriving quantum mechanics from a single physical principle is not yet finished.']
   ]},
   axes:{title:'The three axes — X, Y, Z',layers:[
     ['The ball has three directions, not one.',
@@ -1388,6 +1864,119 @@ const CONCEPTS={
     ['But "for all practical purposes" is doing real work in that sentence.',
      'It is decoherence hiding the superposition — not a law forbidding it.'],
     ['The cat marks the unfinished border: where exactly the quantum world hands off to the classical one is still, precisely, the open question.']
+  ]},
+  unitary:{title:'Gates as rotations',layers:[
+    ['A gate never erases anything. It only turns.'],
+    ['Whatever a gate does to one state it does to all of them at once, rigidly — like spinning a globe, every city moves together.'],
+    ['That rigidity has a name: the operation is unitary. It preserves length, so the total probability stays exactly 1.'],
+    ['On the Bloch sphere a unitary is literally a rotation: pick an axis, pick an angle, turn.'],
+    ['The matrix U obeys U†U = I. Its two columns are where |0⟩ and |1⟩ are sent — and they stay perpendicular.'],
+    ['Every single-qubit gate equals e^{−iα}·R_n(θ): a rotation by θ about some axis n, up to a harmless global phase.'],
+    ['All of them together form the group SU(2), which maps onto ordinary 3D rotations SO(3) as a double cover.',
+     'Two turns of the matrix for one turn of the sphere — the same half-angle that runs through the whole subject.'],
+    ['Unitarity is not decoration — it is why quantum evolution is reversible.',
+     'Run any gate backward with its conjugate-transpose U† and you recover the input exactly. Inside a closed quantum system, information is never destroyed.'],
+    ['A finite set of buttons cannot hit every rotation exactly — there are uncountably many rotations and finitely many gates.',
+     'The Solovay–Kitaev theorem rescues it: any single-qubit gate can be approximated to precision ε using only about log^c(1/ε) gates from a fixed universal set.',
+     'So {H, T, CNOT} is genuinely enough to run any quantum computation, efficiently and to any accuracy.'],
+    ['Reversibility then collides with two things that seem to break it: measurement, which is not unitary, and black holes, which seem to swallow information.',
+     'Physicists trust unitarity so deeply that the black-hole information paradox is framed as "how is unitarity preserved?", never "is it?".',
+     'That refusal to give it up is one of the load-bearing commitments of modern physics.']
+  ]},
+  hamiltonian:{title:'Time evolution',layers:[
+    ['Left completely alone, a qubit still moves.'],
+    ['It drifts — slowly turning — and the thing setting the speed and direction is its energy.'],
+    ['The energy landscape is called the Hamiltonian H. It is the choreographer; the state only follows.'],
+    ['Over a time t the state turns by U = e^{−iHt/ℏ} — a smooth rotation generated by H.'],
+    ['The rate at which phase builds between |0⟩ and |1⟩ is set by their energy gap. That steady turning is Larmor precession.'],
+    ['A gate is just this evolution aimed and timed: switch on a chosen H for a chosen interval and you have built a rotation on purpose.'],
+    ['Controlling real quantum hardware is shaping H(t) in real time.',
+     'Every gate you press is, underneath, an energy briefly sculpted into the right shape.'],
+    ['You can skip gates entirely. Build the right H and let its own evolution be the computation.',
+     'Adiabatic quantum computing starts in the easy ground state of a simple H, then deforms it so slowly that the system stays in the ground state — and the final ground state encodes the answer.'],
+    ['The whole method lives or dies on the spectral gap: how close the lowest two energy levels approach as H is deformed.',
+     'A shrinking gap forces a crawling schedule. Whether the gap stays open for genuinely hard problems is, quietly, one of the deepest unresolved questions about quantum speedups.']
+  ]},
+  tensor:{title:'The joint space',layers:[
+    ['Two qubits are not two separate balls.'],
+    ['They share a single list — four numbers, one for each combination: 00, 01, 10, 11.'],
+    ['That list is the tensor product. The two-qubit space is 2×2 = 4 dimensional, not 2 + 2.'],
+    ['Add a third qubit and it is 8; n qubits give 2ⁿ amplitudes. The space doubles with every wire you add.'],
+    ['Sometimes the list factors cleanly back into "this qubit and that qubit" — a product state, two independent stories.'],
+    ['Most lists do not factor. Those are the entangled ones — and they are the overwhelming majority of the space.'],
+    ['That un-factorable, exponentially large space is the entire arena a quantum computer plays in.',
+     'It is also exactly why a classical machine cannot cheaply keep up — there are too many amplitudes to write down.'],
+    ['But raw size is a trap. A random state in that vast space is useless — it would take exponential time even to prepare, and exponential luck to mean anything.',
+     'The states a real quantum computer can reach in reasonable time are a thin, highly structured sliver of the whole space.',
+     'The art of an algorithm is finding a problem whose answer happens to live in that reachable sliver. The Hilbert space is enormous; the usable corner is subtle.']
+  ]},
+  cnot:{title:'CNOT — the entangling gate',layers:[
+    ['One qubit reaches over and acts on another.'],
+    ['The rule is simple: if the control is 1, flip the target; if the control is 0, do nothing.'],
+    ['Run it on plain definite bits and it is nothing but an if-statement.'],
+    ['Run it on a control in superposition and something genuinely new happens — the two qubits come out linked.'],
+    ['H on the control, then CNOT, turns |00⟩ into (|00⟩ + |11⟩)/√2 — a Bell pair, made in two moves.'],
+    ['CNOT is the canonical two-qubit gate. Together with single-qubit rotations it is universal: any quantum computation is built from these.'],
+    ['It is the precise place entanglement enters a circuit.',
+     'No entangling gate anywhere in the machine means no quantum advantage anywhere in the output.']
+  ]},
+  entropy:{title:'Entanglement entropy',layers:[
+    ['Ask one half of an entangled pair "what are you?" and it has no clean answer of its own.'],
+    ['The more entangled the pair, the less each half knows about itself.'],
+    ['Turn that not-knowing into a number: the entropy of one qubit looked at alone.'],
+    ['0 means fully itself — a product state. 1 bit means maximally entangled: its own state is a coin with no bias at all.'],
+    ['Formally S = −Tr(ρ_A log₂ ρ_A), read off the reduced density matrix of one side.'],
+    ['For a pure pair the two halves always return the same entropy — the link is perfectly symmetric.'],
+    ['This one number is the currency behind teleportation, behind the black-hole information puzzle, behind why entangled states resist faking.',
+     'It counts the correlation that lives between the parts and in neither part alone.'],
+    ['Add up this entropy across the boundary of a region in a quantum field and something startling appears: it scales with the boundary area, not the enclosed volume.',
+     'That "area law" is the same scaling as black-hole entropy — and it is the seed of the holographic principle, the idea that a region’s information may be written on its surface.',
+     'A number you just read off two qubits is the thread that runs all the way to quantum gravity.']
+  ]},
+  grover:{title:'Grover search',layers:[
+    ['Find the one marked item in an unsorted list.'],
+    ['Classically there is no shortcut — on average you must check half of everything.'],
+    ['Grover finds it in about √N tries instead of N. Quadratically fewer, every time.'],
+    ['Start with every item equally bright, then repeat just two moves.'],
+    ['The oracle quietly flips the sign of the marked item; diffusion then reflects every amplitude about their average.'],
+    ['Each round pours a little amplitude onto the marked item and drains the rest. On the bars, one column climbs while the others sink.'],
+    ['After about (π/4)√N rounds it peaks — then over-rotates back down if you keep going.',
+     'Even building certainty has a correct moment to stop: amplitude amplification is a rotation, not a ratchet.'],
+    ['And √N is the ceiling, not a waypoint. Grover is provably optimal — no quantum algorithm can search a structureless list any faster.',
+     'Unstructured search has no exponential quantum solution. The famous exponential wins must come from somewhere else.'],
+    ['They come from structure. When a problem hides a periodicity, the quantum Fourier transform can expose it in one interfering sweep.',
+     'That is Shor’s domain: factoring by finding the period of modular exponentiation, which quietly dismantles RSA.',
+     'The lesson under both algorithms: quantum speed is bought with interference, and the exponential prizes are paid out only where the problem already has a hidden pattern to find.']
+  ]},
+  deutsch:{title:'Deutsch–Jozsa',layers:[
+    ['A hidden function is either constant — same answer always — or balanced: half 0s, half 1s. Which is it?'],
+    ['Classically, in the worst case, you must test more than half the inputs before you can be sure.'],
+    ['A quantum computer settles it in a single query.'],
+    ['Put the input into superposition so one call probes every input at once.'],
+    ['The oracle writes its answer into phase rather than into a value — the phase-kickback trick.'],
+    ['A final layer of interference makes the constant case and the balanced case land on different measured bits.'],
+    ['It is artificial and small, but it was the first clean proof that quantum queries can strictly beat classical ones.',
+     'Everything from Simon to Shor grows out of this one idea: hide the answer in phase, then interfere it into view.']
+  ]},
+  superdense:{title:'Superdense coding',layers:[
+    ['One qubit, on its own, carries one bit. That is the classical ceiling.'],
+    ['But if you and a partner already share a Bell pair, you can send two bits by mailing a single qubit.'],
+    ['You act only on your own half — one of four quick operations (I, X, Z, or XZ).'],
+    ['That silently rotates the shared pair into one of four perfectly distinguishable Bell states.'],
+    ['Your partner, now holding both halves, measures once and reads both bits cleanly.'],
+    ['The information was never in the travelling qubit alone — it was in the correlation you completed at the far end.'],
+    ['It is teleportation run in reverse: there you spend entanglement to move a state; here you spend it to double a channel.',
+     'Two protocols, one resource — entanglement as a thing you can budget and spend.']
+  ]},
+  densitymatrix:{title:'The density matrix',layers:[
+    ['A pure state is a single arrow on the sphere. But what if you are not sure which state you actually hold?'],
+    ['Then you carry a probability mix of arrows — and no single arrow can describe you anymore.'],
+    ['The density matrix ρ can. It holds the quantum superposition and the classical uncertainty in one object.'],
+    ['On the sphere it is the whole ball, not just the skin: ρ = ½(I + r·σ). |r| = 1 is the surface (pure), inside is mixed, the dead center is "know nothing".'],
+    ['Its diagonal is the measurement odds; its off-diagonal — the coherences — is the quantum part, the phase that can still interfere.'],
+    ['Decoherence is exactly those off-diagonal terms decaying to zero. The arrow shrinks toward the center as the world reads the qubit.'],
+    ['Every honest description of a real, noisy qubit is a density matrix.',
+     'The pure-state arrow is the idealization; ρ is what you are ever actually handed.']
   ]}
 };
 const ROOM_CHIPS={
@@ -1401,6 +1990,12 @@ const ROOM_CHIPS={
     ['bell','Bell’s theorem'],['teleport','teleportation']],
   measure:[['bornrule','the Born rule'],['collapse','collapse'],['measproblem','the measurement problem'],
     ['observer','the observer'],['zeno','the Zeno effect'],['cat','Schrödinger’s cat']],
+  gates:[['unitary','gates as rotations'],['gates','the gate set'],['axes','the three axes'],
+    ['hamiltonian','time evolution'],['densitymatrix','the density matrix']],
+  two:[['tensor','the joint space'],['cnot','CNOT'],['entanglement','entanglement'],
+    ['entropy','entanglement entropy'],['bell','Bell states'],['nocloning','no-cloning']],
+  algo:[['grover','Grover search'],['deutsch','Deutsch–Jozsa'],['advantage','the advantage'],
+    ['superdense','superdense coding'],['teleport','teleportation'],['information','quantum information']],
   map:[]
 };
 const TRYS={
@@ -1408,6 +2003,9 @@ const TRYS={
   interf:'auto-sweep the phase and watch the bright port empty completely into the dark one — nothing is lost, only moved.',
   entang:'slide entanglement to 100%, then measure A. B answers the same in that instant — and you never touched it.',
   measure:'set the tilt near the top and measure once — probably 0. Now measure ×200 and watch the tally find the real odds.',
+  gates:'set the angle to π/2, axis x, and apply twice — two half-turns equal one X. Then read the matrix multiply itself out.',
+  two:'press Bell, then read S(ρ_A) = 1 bit — each qubit has lost its own state entirely into the pair.',
+  algo:'pick a marked item, then step Grover. Watch one bar climb and the rest drain — and stop at step 2, the peak.',
   map:'drag a concept to pull the whole web around. The dots you have opened glow — click any dot to read it.'
 };
 
@@ -1486,7 +2084,8 @@ window.addEventListener('resize',()=>fit(document.getElementById(ROOMS[active].c
 /* ---- ask the brain -------------------------------------------------- */
 function buildContext(){
   const roomName={qubit:'The Qubit',interf:'Interference',
-    entang:'Entanglement',measure:'Measurement'}[active];
+    entang:'Entanglement',measure:'Measurement',
+    gates:'Gate Lab',two:'Two Qubits',algo:'Algorithms',map:'Concept Map'}[active];
   const p=['Room: '+roomName];
   if(focus){
     const c=CONCEPTS[focus];
@@ -1501,6 +2100,15 @@ function buildContext(){
     p.push(`entanglement ${(Math.sin(eAmt.value/100*Math.PI/2)*100|0)}%`);
   } else if(active==='measure'){
     p.push(`tally ${mC0} zeros / ${mC1} ones`);
+  } else if(active==='gates'){
+    p.push(`gate sequence: ${gSeq.length?gSeq.map(s=>s.label).join(' · '):'empty'}; Bloch r=(${fmt(gV.x,2)},${fmt(gV.y,2)},${fmt(gV.z,2)})`);
+  } else if(active==='two'){
+    const m=t2Metrics(t2);
+    p.push(`two-qubit state ${stateStr(t2,2)}; S(ρ_A)=${fmt(m.S,2)}, concurrence=${fmt(m.conc,2)}`);
+  } else if(active==='algo'){
+    p.push(alg==='grover'
+      ? `Grover, marked |${binStr(aMark,3)}⟩, step ${aStep}, P(marked)=${fmt(aState?cabs2(aState[aMark]):0,3)}`
+      : `Deutsch–Jozsa, oracle ${djOracle}, stage ${djStage}/3`);
   }
   const seen=Object.keys(progress);
   if(seen.length) p.push('explored so far — '+

@@ -6,6 +6,36 @@
 # Schema: brain-app/v1 — api/schemas/brain-app.schema.json in brainfoundry-nous.
 # Created: 2026-05-19. v0.2.0 brain-bridge wiring: 2026-05-20.
 #
+# v0.6.1 (2026-06-21): fix + connective tissue —
+#   * FIX: the math toggle blanked the whole page. It added class "math" to
+#     <body>, which the rule .math{display:none} then hid. Body toggle renamed
+#     to "mathon"; math layer now works.
+#   * Hover tooltips (title=) on every gate, slider, axis, toggle and action.
+#   * Gate Lab "famous identities" presets (H·Z·H=X, H·X·H=Z, S·S=Z, T·T=S,
+#     H·H=I) that load and animate; Two Qubits gets the four Bell-state presets.
+#   * Button↔concept linking: pressing a gate opens its read-further ladder
+#     (gates→unitary, CNOT→cnot, Bell→bell, Grover→grover, Deutsch→deutsch).
+#
+# v0.6.0 (2026-06-21): Gate Lab reworked into a still study bench —
+#   camera no longer auto-orbits there; live |ψ⟩ amplitudes; a left-to-right
+#   circuit timeline of pressed gates; the running product U = (…·S·H) shown
+#   with last-pressed leftmost; an axis-fixed-point hint (explains why S/T/Z
+#   look inert at a pole); clearer named-gates vs custom-rotation sections.
+#   Plus deeper terminal levels on sphere, unitary, time evolution, tensor,
+#   entanglement entropy, and Grover (Solovay–Kitaev, adiabatic gap, area law,
+#   optimality of √N, GPT reconstruction, Hopf recurrences).
+#
+# v0.5.0 (2026-06-21): three new rooms take it past one qubit —
+#   * Gate Lab: named gates + continuous Rx/Ry/Rz dial, the live 2x2 unitary
+#     matrix, the rotation axis drawn on the sphere, undo-able gate sequence.
+#   * Two Qubits: 4-amplitude state with phase-as-hue bars, H/X/Z/CNOT, a Bell
+#     preset, live entanglement entropy S(rho_A) and concurrence.
+#   * Algorithms: interactive Grover search (N=8, amplitude amplification) and
+#     Deutsch-Jozsa (phase kickback, one-query verdict).
+#   Plus 9 new read-further concepts (unitary, time evolution, tensor product,
+#   CNOT, entanglement entropy, Grover, Deutsch-Jozsa, superdense, density
+#   matrix), the density matrix in the Qubit room, and a denser concept map.
+#
 # v0.4.0 (2026-06-21): the Bloch sphere now draws all three measurement axes —
 #   X (|+⟩,|−⟩) and Y (|+i⟩,|−i⟩) alongside the Z poles (|0⟩,|1⟩) — and adds a
 #   "three axes" read-further concept (plain language down to mutually-unbiased
@@ -24,8 +54,8 @@
 dialect: brain-app/v1
 id: quantum-room
 name: The Quantum Room
-version: 0.4.0
-description: An interactive instrument for understanding quantum mechanics — five rooms, a concept map, and layered read-further explanations from plain language to real physics.
+version: 0.6.1
+description: An interactive instrument for understanding quantum mechanics — seven rooms (qubit, interference, entanglement, measurement, gate lab, two qubits, algorithms), a concept map, and layered read-further explanations from plain language down to the real mathematics.
 license: AGPL-3.0
 
 author:
