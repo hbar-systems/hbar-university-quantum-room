@@ -229,6 +229,10 @@
   .credit{margin-top:10px;color:var(--faint);font-size:11.5px}
   .credit a{color:var(--mut);text-decoration:none}
   .credit a:hover{color:var(--ink)}
+  /* shots room (v0.11.0) */
+.sh-p{margin:14px 0 22px}.sh-p h3{font-size:16px;font-weight:600;margin:0 0 2px}.sh-lead{color:#8d93b5;margin:0 0 10px;font-size:13.5px}
+.sh-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}.sh-ctl button{border:1px solid #272e4d;background:#141833;color:#e8e9f3;padding:5px 12px;border-radius:999px;cursor:pointer;font:inherit;font-size:13px}
+.sh-ctl button.on{background:#e8e9f3;color:#0a0b16}.sh-ctl input[type=range]{width:200px}.sh-num{font-variant-numeric:tabular-nums}.sh-k{color:#8d93b5}.sh-big{font-size:18px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -251,6 +255,7 @@
   <button class="tab" data-r="tele"><span class="n">9</span>Teleport</button>
   <button class="tab" data-r="bb84"><span class="n">10</span>BB84</button>
   <button class="tab" data-r="circ"><span class="n">11</span>Circuit</button>
+  <button class="tab" data-r="shots"><span class="n">12</span>Shots</button>
   <button class="tab" data-r="map">Map</button>
   <span class="navsep"></span>
   <button class="mini" id="math" title="Math layer — reveal the live equations under every room (Bloch vector, amplitudes, matrices, density matrix). Off by default."><span class="dot"></span>math</button>
@@ -522,6 +527,35 @@
 </section>
 
 <!-- JOURNEYS -->
+<section class="room" id="room-shots">
+  <div class="roomsub">A quantum computer never hands you an energy. It hands you +1 or −1, one shot at a time. Here is how a VQE energy is built from shots, and why it is noisy.</div>
+<div class="sh-p">
+<h3>1. One qubit: up or down?</h3>
+<p class="sh-lead">Tilt the qubit by θ. Measuring Z gives +1 with probability cos²(θ/2), otherwise −1. Fire shots; the estimate is the plain average of the ±1 outcomes.</p>
+<canvas id="qs-c1" style="height:240px"></canvas>
+<div class="sh-ctl">θ = <b id="qs-th" class="sh-num"></b> <input id="qs-ts" type="range" min="0" max="100" value="33"> <span class="sh-k">P(+1) = <span id="qs-pp" class="sh-num"></span>, true ⟨Z⟩ = <span id="qs-tz" class="sh-num"></span></span></div>
+<div class="sh-ctl"><button data-qs-n="1">1 shot</button><button data-qs-n="10">10 shots</button><button data-qs-n="100">100</button><button data-qs-n="1000">1000</button><button id="qs-r1">reset</button></div>
+<div class="sh-big">estimate ⟨Z⟩ = <span id="qs-ez" class="sh-num">–</span> <span class="sh-k">± <span id="qs-eb" class="sh-num">–</span> after <span id="qs-sn" class="sh-num">0</span> shots</span></div>
+<div class="sh-k sh-num" id="qs-sum"></div>
+</div>
+<div class="sh-p">
+<h3>2. The same experiment, 500 times</h3>
+<p class="sh-lead">Each run of S shots lands somewhere different. The bars are 500 runs; the line is the true value. Move S and watch the bell narrow: 100× the shots, 10× narrower.</p>
+<canvas id="qs-c2" style="height:210px"></canvas>
+<div class="sh-ctl">shots per run S = <b id="qs-s2v" class="sh-num"></b> <input id="qs-s2s" type="range" min="1" max="5" step="0.05" value="2"> <button id="qs-g2">run again</button></div>
+<div class="sh-num">measured spread σ = <b id="qs-m2">–</b> <span class="sh-k">formula √((1 − ⟨Z⟩²)/S) = <span id="qs-p2">–</span></span></div>
+</div>
+<div class="sh-p">
+<h3>3. The energy of H₂: fifteen up-or-down questions, added up</h3>
+<p class="sh-lead">E = Σ hⱼ⟨Pⱼ⟩. Each Pauli term is its own experiment with S shots; the energy is the weighted sum. The optimizer sees one bar's worth per evaluation. Green: chemical accuracy, ±1.5 mHa.</p>
+<canvas id="qs-c3" style="height:230px"></canvas>
+<div class="sh-ctl"><button id="qs-stG" class="on">at the ground state</button><button id="qs-stR">at a random state</button> shots per term S = <b id="qs-s3v" class="sh-num"></b> <input id="qs-s3s" type="range" min="1.7" max="5" step="0.05" value="3.7"></div>
+<div class="sh-ctl"><button id="qs-o3">one evaluation</button><button id="qs-g3">500 evaluations</button><button id="qs-r3">clear</button></div>
+<div class="sh-num">true E = <b id="qs-e3">–</b> Ha · measured σ = <b id="qs-m3">–</b> mHa <span class="sh-k">(formula <span id="qs-p3">–</span>)</span> · inside the band: <b id="qs-f3">–</b></div>
+<details><summary>what the numbers mean</summary><p>Var[Ê] = Σ hⱼ²(1 − ⟨Pⱼ⟩²)/Sⱼ. A term whose answer is nearly certain (⟨P⟩ near ±1) adds almost no noise; a term near 0 adds the most. Near the ground state many terms are nearly certain, so one evaluation is sharp; at a random state, far from the answer, it is several times noisier. Coefficients: vqe-lab/vqe_lab/core/system_h2.py (4 qubits, 15 terms; electronic energy, no nuclear repulsion). Each term is measured separately here; the thesis groups commuting terms (Appendix B), which changes the constants, not the picture.</p></details>
+</div>
+</section>
+
 <section class="room" id="room-journeys">
   <div class="roomsub">Guided paths through the rooms. Each is a few steps with a checkpoint — do the thing, watch it click, move on. New here? Start with the first.</div>
   <div class="jlist" id="jlist"></div>
@@ -1745,7 +1779,7 @@ const MAP_LABEL={
   bb84:'BB84',circuitmodel:'circuit model'
 };
 const ROOM_COL={qubit:'#7fe4ff',interf:'#ffcd6a',entang:'#b79bf0',measure:'#7fd9a0',
-  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a',bell:'#c08ae0',tele:'#7fd9a0',bb84:'#7fe4ff',circ:'#ffcd6a'};
+  gates:'#8ce0a8',two:'#e08ad0',algo:'#ff9f6a',bell:'#c08ae0',tele:'#7fd9a0',bb84:'#7fe4ff',circ:'#ffcd6a',shots:'#7fd9a0'};
 let mapNodes=null, mapDrag=null;
 function initMap(){
   const conceptRoom={};
@@ -1851,6 +1885,7 @@ const ROOMS={
   tele:{cv:'c-tele',render:renderTele},
   bb84:{},
   circ:{cv:'c-circ',render:renderCirc},
+  shots:{},
   journeys:{},
   map:{cv:'c-map',render:renderMap}
 };
@@ -2503,6 +2538,7 @@ const ROOM_CHIPS={
     ['information','quantum information']],
   circ:[['circuitmodel','the circuit model'],['cnot','CNOT'],['tensor','the joint space'],
     ['unitary','gates as rotations'],['advantage','the advantage']],
+  shots:[['measurement','measurement'],['bornrule','Born rule']],
   journeys:[],
   map:[]
 };
@@ -2518,6 +2554,7 @@ const TRYS={
   tele:'pick |+i⟩ and step through — Bob’s qubit stays blank until the 2 classical bits arrive, then snaps to ψ. Information never outran light.',
   bb84:'turn Eve on and hit new run a few times — the sifted key fills with ~25% errors, the unmistakable fingerprint of an eavesdropper.',
   circ:'press “Bell preset”, then “measure ×200” — the white ticks (sampled) land on |00⟩ and |11⟩ only, never |01⟩ or |10⟩. Then hit OpenQASM.',
+  shots:'in panel 3, switch between the ground state and a random state at the same S: the bell is several times wider far from the answer, where the optimizer actually walks.',
   journeys:'pick a path below and follow the steps — each one ends in a small "aha".',
   map:'drag a concept to pull the whole web around. The dots you have opened glow — click any dot to read it.'
 };
@@ -2589,6 +2626,7 @@ function showRoom(name){
   focus=null;depth=0;
   buildChips(name);renderDrawer();
   document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS[name];
+  if(name==='shots'&&typeof QSH!=='undefined') QSH.redraw();
 }
 document.querySelectorAll('.tab').forEach(t=>
   t.onclick=()=>showRoom(t.dataset.r));
@@ -2599,7 +2637,7 @@ function buildContext(){
   const roomName={qubit:'The Qubit',interf:'Interference',
     entang:'Entanglement',measure:'Measurement',
     gates:'Gate Lab',two:'Two Qubits',algo:'Algorithms',bell:'Bell Test',
-    tele:'Teleportation',bb84:'BB84',circ:'Circuit Builder',journeys:'Journeys',map:'Concept Map'}[active];
+    tele:'Teleportation',bb84:'BB84',circ:'Circuit Builder',shots:'Shots',journeys:'Journeys',map:'Concept Map'}[active];
   const p=['Room: '+roomName];
   if(focus){
     const c=CONCEPTS[focus];
@@ -2779,6 +2817,102 @@ window.addEventListener('load',()=>{
   document.getElementById('try').innerHTML='<b>Try —</b> '+TRYS.qubit;
   requestAnimationFrame(frame);
 });
+</script>
+<script>
+/* ---- shots room (v0.11.0): H2 from vqe-lab system_h2.py, exact ground state, shot sampling ---- */
+// created 2026-11-22. Shot-noise core: H2 Hamiltonian (vqe-lab/vqe_lab/core/system_h2.py), exact ground state, shot sampling.
+const H2_TERMS=[["IIII",-0.80718],["ZIII",0.17374],["ZZII",-0.23047],["IIZI",0.17374],["IZZZ",-0.23047],["IZII",0.12149],["ZIZI",0.16940],["ZZZZ",0.16658],["ZZZI",0.16658],["ZIZZ",0.17511],["IZIZ",0.12149],["XZXI",-0.04509],["XIXZ",0.04509],["XIXI",0.04509],["XZXZ",-0.04509]];
+function applyPauli(p,v){const n=p.length,out=new Array(v.length).fill(0);
+ for(let b=0;b<v.length;b++){let t=b,s=1;for(let q=0;q<n;q++){const bit=(b>>(n-1-q))&1,c=p[q];
+  if(c==='X'){t^=1<<(n-1-q);}else if(c==='Z'&&bit){s=-s;}}out[t]+=s*v[b];}return out;}
+function expect(p,v){const w=applyPauli(p,v);let s=0;for(let i=0;i<v.length;i++)s+=v[i]*w[i];return s;}
+function hamMatrix(terms,n){const d=1<<n,M=[];for(let j=0;j<d;j++){const e=new Array(d).fill(0);e[j]=1;let col=new Array(d).fill(0);
+ for(const [p,h] of terms){const w=applyPauli(p,e);for(let i=0;i<d;i++)col[i]+=h*w[i];}M.push(col);}
+ return M.map((_,i)=>M.map(c=>c[i]));}
+function jacobi(A){const n=A.length,a=A.map(r=>r.slice()),V=a.map((_,i)=>a.map((_,j)=>i===j?1:0));
+ for(let sw=0;sw<100;sw++){let off=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)off+=a[i][j]*a[i][j];if(off<1e-22)break;
+  for(let p=0;p<n;p++)for(let q=p+1;q<n;q++){if(Math.abs(a[p][q])<1e-15)continue;
+   const th=(a[q][q]-a[p][p])/(2*a[p][q]),t=Math.sign(th||1)/(Math.abs(th)+Math.sqrt(th*th+1)),c=1/Math.sqrt(t*t+1),s=t*c;
+   for(let k=0;k<n;k++){const akp=a[k][p],akq=a[k][q];a[k][p]=c*akp-s*akq;a[k][q]=s*akp+c*akq;}
+   for(let k=0;k<n;k++){const apk=a[p][k],aqk=a[q][k];a[p][k]=c*apk-s*aqk;a[q][k]=s*apk+c*aqk;}
+   for(let k=0;k<n;k++){const vkp=V[k][p],vkq=V[k][q];V[k][p]=c*vkp-s*vkq;V[k][q]=s*vkp+c*vkq;}}}
+ return {vals:a.map((r,i)=>r[i]),vecs:V};}
+function groundState(terms,n){const {vals,vecs}=jacobi(hamMatrix(terms,n));let k=0;vals.forEach((x,i)=>{if(x<vals[k])k=i;});
+ return {E0:vals[k],psi:vecs.map(r=>r[k]),vals};}
+// binomial sample of S shots with P(+1)=p, returns mean of +/-1 outcomes
+function sampleMean(p,S,rnd=Math.random){let plus;
+ if(S<=200){plus=0;for(let i=0;i<S;i++)if(rnd()<p)plus++;}
+ else{const mu=S*p,sd=Math.sqrt(S*p*(1-p));let u=rnd()||1e-12,v=rnd();plus=Math.round(mu+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v));plus=Math.max(0,Math.min(S,plus));}
+ return (2*plus-S)/S;}
+function estimateEnergy(terms,ex,S,rnd){let E=0;terms.forEach(([p,h],j)=>{if(/^I+$/.test(p))E+=h;else E+=h*sampleMean((1+ex[j])/2,S,rnd);});return E;}
+function predictedSigma(terms,ex,S){let v=0;terms.forEach(([p,h],j)=>{if(!/^I+$/.test(p))v+=h*h*(1-ex[j]*ex[j])/S;});return Math.sqrt(v);}
+
+// created 2026-11-22. Shots room UI. initShots(prefix, theme): all element ids are prefix+name.
+function initShots(P,T){
+const $=id=>document.getElementById(P+id);
+function ctx(cv){const d=window.devicePixelRatio||1,w=cv.clientWidth||560,h=cv.clientHeight||240;
+ if(cv.width!==Math.round(w*d)||cv.height!==Math.round(h*d)){cv.width=Math.round(w*d);cv.height=Math.round(h*d);}
+ const x=cv.getContext('2d');x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,w,h);return [x,w,h];}
+const fmtPi=t=>(Math.round(t/Math.PI*100)/100)+'π';
+// panel 1
+let th=0,plus=0,minus=0,drops=[];
+function setTh(){th=$('ts').value/100*Math.PI;const p=Math.cos(th/2)**2;$('th').textContent=fmtPi(th);$('pp').textContent=p.toFixed(3);$('tz').textContent=(2*p-1).toFixed(3);plus=minus=0;drops=[];upd1();}
+function upd1(){const S=plus+minus;$('sn').textContent=S;
+ if(!S){$('ez').textContent='–';$('eb').textContent='–';$('sum').textContent='';return;}
+ const z=(plus-minus)/S;$('ez').textContent=z.toFixed(3);$('eb').textContent=Math.sqrt(Math.max(0,1-z*z)/S).toFixed(3);
+ $('sum').textContent='('+plus+' × (+1) + '+minus+' × (−1)) / '+S+' = '+z.toFixed(3);}
+function draw1(){const [x,W,H]=ctx($('c1'));const cx=W*0.18,cy=H*0.5,R=Math.min(W*0.14,H*0.36);
+ x.strokeStyle=T.line;x.lineWidth=1;x.beginPath();x.arc(cx,cy,R,0,7);x.stroke();
+ x.fillStyle=T.mute;x.font='12px system-ui';x.textAlign='center';x.fillText('|0⟩ gives +1',cx,cy-R-8);x.fillText('|1⟩ gives −1',cx,cy+R+18);
+ x.strokeStyle=T.ink;x.lineWidth=3;x.beginPath();x.moveTo(cx,cy);x.lineTo(cx+R*Math.sin(th),cy-R*Math.cos(th));x.stroke();
+ x.fillStyle=T.ink;x.beginPath();x.arc(cx+R*Math.sin(th),cy-R*Math.cos(th),4,0,7);x.fill();
+ const bx=[W*0.55,W*0.8],base=H-28,top=24,mx=Math.max(plus,minus,1);
+ [[plus,'+1',T.plus],[minus,'−1',T.minus]].forEach(([n,l,col],i)=>{const h=(base-top)*n/mx;x.fillStyle=col;x.fillRect(bx[i]-W*0.07,base-h,W*0.14,h);
+  x.fillStyle=T.ink;x.fillText(l+'   ('+n+')',bx[i],H-10);});
+ x.strokeStyle=T.line;x.beginPath();x.moveTo(W*0.4,base);x.lineTo(W*0.95,base);x.stroke();
+ drops.forEach(d=>{d.t+=0.04;if(d.t<0||d.t>=1)return;const tx=bx[d.b],x0=cx+R*Math.sin(th),y0=cy-R*Math.cos(th);
+  const px=x0+(tx-x0)*d.t,py=y0+(base-8-y0)*d.t-50*Math.sin(Math.PI*d.t);x.fillStyle=d.b?T.minus:T.plus;x.beginPath();x.arc(px,py,5,0,7);x.fill();});
+ x.textAlign='left';drops=drops.filter(d=>d.t<1);if(drops.length)requestAnimationFrame(draw1);}
+const fire=n=>{const p=Math.cos(th/2)**2;let k=0;for(let i=0;i<n;i++){const up=Math.random()<p;up?plus++:minus++;if(n<=10)drops.push({b:up?0:1,t:-(k++)*0.25});}upd1();draw1();};
+document.querySelectorAll('[data-'+P+'n]').forEach(b=>b.onclick=()=>fire(+b.getAttribute('data-'+P+'n')));
+$('r1').onclick=()=>{plus=minus=0;drops=[];upd1();draw1();};
+$('ts').oninput=()=>{setTh();draw1();run2();};
+// histogram
+function hist(cv,xs,truth,lo,hi,band,fmt,label){const [x,W,H]=ctx(cv),pad=34,X=v=>pad+(v-lo)/(hi-lo)*(W-2*pad);
+ if(band){x.fillStyle=T.band;x.fillRect(X(truth-band),8,X(truth+band)-X(truth-band),H-38);x.fillStyle=T.plus;x.font='11px system-ui';x.fillText('chemical accuracy',X(truth+band)+4,22);}
+ const nb=50,cnt=new Array(nb).fill(0);xs.forEach(v=>{const k=Math.floor((v-lo)/(hi-lo)*nb);if(k>=0&&k<nb)cnt[k]++;});const m=Math.max(...cnt,1),bw=(W-2*pad)/nb;
+ x.fillStyle=T.acc;cnt.forEach((c,k)=>{const h=(H-48)*c/m;x.fillRect(pad+k*bw+1,H-30-h,bw-2,h);});
+ x.strokeStyle=T.ink;x.lineWidth=2;x.beginPath();x.moveTo(X(truth),8);x.lineTo(X(truth),H-30);x.stroke();x.lineWidth=1;
+ x.strokeStyle=T.line;x.beginPath();x.moveTo(pad,H-30);x.lineTo(W-pad,H-30);x.stroke();
+ x.fillStyle=T.mute;x.font='11px system-ui';x.textAlign='left';x.fillText(fmt(lo),pad-8,H-12);x.textAlign='right';x.fillText(fmt(hi),W-pad+8,H-12);
+ x.textAlign='center';x.fillStyle=T.ink;x.fillText('true value',X(truth),H-12);x.textAlign='left';
+ if(!xs.length){x.fillStyle=T.mute;x.fillText(label,pad+8,40);}}
+const sd=xs=>{const m=xs.reduce((a,b)=>a+b,0)/xs.length;return Math.sqrt(xs.reduce((a,b)=>a+(b-m)**2,0)/xs.length);};
+// panel 2
+const S2=()=>Math.round(10**$('s2s').value);
+function run2(){const p=Math.cos(th/2)**2,z=2*p-1,S=S2(),xs=[];$('s2v').textContent=S;for(let i=0;i<500;i++)xs.push(sampleMean(p,S));
+ const pred=Math.sqrt((1-z*z)/S),w=Math.max(4*pred,0.02);hist($('c2'),xs,z,Math.max(-1.02,z-w),Math.min(1.02,z+w),0,v=>v.toFixed(3),'');
+ $('m2').textContent=sd(xs).toFixed(4);$('p2').textContent=pred.toFixed(4);}
+$('s2s').oninput=run2;$('g2').onclick=run2;
+// panel 3
+const G=groundState(H2_TERMS,4),exG=H2_TERMS.map(([p])=>expect(p,G.psi));let exR=null;
+function randState(){const v=Array.from({length:16},()=>Math.random()*2-1),n=Math.hypot(...v);const ps=v.map(a=>a/n);exR=H2_TERMS.map(([p])=>expect(p,ps));}
+randState();let mode='G',evals=[];
+const cur=()=>mode==='G'?exG:exR,trueE=()=>H2_TERMS.reduce((E,[p,h],j)=>E+h*cur()[j],0),S3=()=>Math.round(10**$('s3s').value);
+function draw3(){const E=trueE(),S=S3(),ps=predictedSigma(H2_TERMS,cur(),S),w=Math.max(4*ps,0.004);$('s3v').textContent=S;$('e3').textContent=E.toFixed(4);$('p3').textContent=(ps*1000).toFixed(2);
+ hist($('c3'),evals,E,E-w,E+w,0.0015,v=>v.toFixed(3),'press "one evaluation" or "500 evaluations"');
+ $('m3').textContent=evals.length>1?(sd(evals)*1000).toFixed(2):'–';
+ $('f3').textContent=evals.length?(evals.filter(v=>Math.abs(v-E)<=0.0015).length+' of '+evals.length):'–';}
+const many=()=>{evals=[];for(let i=0;i<500;i++)evals.push(estimateEnergy(H2_TERMS,cur(),S3()));draw3();};
+$('o3').onclick=()=>{evals.push(estimateEnergy(H2_TERMS,cur(),S3()));draw3();};$('g3').onclick=many;$('r3').onclick=()=>{evals=[];draw3();};
+$('s3s').oninput=many;
+$('stG').onclick=()=>{mode='G';$('stG').classList.add('on');$('stR').classList.remove('on');many();};
+$('stR').onclick=()=>{mode='R';randState();$('stR').classList.add('on');$('stG').classList.remove('on');many();};
+setTh();
+return {redraw(){draw1();run2();if(!evals.length)many();else draw3();}};
+}
+
+const QSH=initShots('qs-',{ink:'#e8e9f3',mute:'#8d93b5',line:'#2a3150',plus:'#7fd9a0',minus:'#ff9f6a',band:'rgba(127,217,160,.16)',acc:'#7fe4ff'});
 </script>
 </body>
 </html>

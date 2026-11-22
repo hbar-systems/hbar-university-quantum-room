@@ -6,6 +6,11 @@
 # Schema: brain-app/v1 — api/schemas/brain-app.schema.json in brainfoundry-nous.
 # Created: 2026-05-19. v0.2.0 brain-bridge wiring: 2026-05-20.
 #
+# v0.11.0 (2026-11-22): Shots room (12). One qubit measured shot by shot,
+#   500 repeats showing the 1/sqrt(S) spread against the formula, and the real
+#   15-term H2 Hamiltonian estimated from shots against the chemical-accuracy band
+#   (ground state vs a random state). Shared source: out/2026-11-22/shots-room/src.
+#
 # v0.6.1 (2026-06-21): fix + connective tissue —
 #   * FIX: the math toggle blanked the whole page. It added class "math" to
 #     <body>, which the rule .math{display:none} then hid. Body toggle renamed
@@ -54,7 +59,7 @@
 dialect: brain-app/v1
 id: quantum-room
 name: The Quantum Room
-version: 0.10.0
+version: 0.11.0
 description: Learn quantum mechanics by playing — seven rooms (qubit, gates, two-qubit, algorithms, and more), a concept map, and layered explanations from plain language down to the real mathematics.
 license: AGPL-3.0
 
